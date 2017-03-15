@@ -1,6 +1,9 @@
 [package]
-name = "HDPI_Blinkenwall"
+name = "hdpi_blinkenwall"
 version = "0.1.0"
 authors = ["Andreas Monitzer <metalab@monitzer.com>"]
 
 [dependencies]
+glium = "*"
+glutin = "*"
+cgmath = "0.9.1"
