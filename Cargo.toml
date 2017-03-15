@@ -1,0 +1,6 @@
+[package]
+name = "HDPI_Blinkenwall"
+version = "0.1.0"
+authors = ["Andreas Monitzer <metalab@monitzer.com>"]
+
+[dependencies]
