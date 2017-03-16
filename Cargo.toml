@@ -7,3 +7,8 @@ authors = ["Andreas Monitzer <metalab@monitzer.com>"]
 glium = "*"
 glutin = "*"
 chrono = "0.3"
+ws = "0.6"
+
+[dependencies.rusqlite]
+version = "0.10"
+features = ["bundled"]
