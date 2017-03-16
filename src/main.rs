@@ -26,16 +26,6 @@ void main() {
 }
 ";
 
-// const FRAGMENT_SHADER: &'static str = "#version 140
-//
-// in vec2 vTexCoords;
-// out vec4 f_color;
-//
-// void main() {
-//     f_color = vec4(vTexCoords, 0.0, 1.0);
-// }
-// ";
-
 const FRAGMENT_SHADER_PREAMBLE: &'static str = "#version 140
 
 in vec2 vTexCoords;
