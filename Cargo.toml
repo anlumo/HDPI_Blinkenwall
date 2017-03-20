@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["Andreas Monitzer <metalab@monitzer.com>"]
 
 [dependencies]
+log = "0.3"
+env_logger = "0.4"
 glium = "*"
 glutin = "*"
 chrono = "0.3"

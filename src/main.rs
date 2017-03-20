@@ -1,3 +1,6 @@
+#[macro_use] extern crate log;
+extern crate env_logger;
+
 #[macro_use]
 extern crate glium;
 extern crate chrono;
@@ -1451,6 +1454,7 @@ const DISPLAY_WIDTH: u32 = 192;
 const DISPLAY_HEIGHT: u32 = 144;
 
 fn main() {
+    env_logger::init().unwrap();
     let display = glutin::WindowBuilder::new()
         .with_depth_buffer(24)
         .with_fullscreen(glutin::get_primary_monitor())
