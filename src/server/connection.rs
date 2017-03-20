@@ -2,6 +2,7 @@ use super::ws::{self, Sender, Handler, CloseCode, Handshake, Error, Result};
 use std::sync::mpsc;
 use super::Command;
 use serde_json;
+use log;
 
 #[derive(Serialize, Deserialize)]
 struct CommandHeader {
@@ -26,7 +27,12 @@ impl Connection {
 }
 
 impl Handler for Connection {
-    fn on_open(&mut self, _: Handshake) -> Result<()> {
+    fn on_open(&mut self, shake: Handshake) -> Result<()> {
+        if log_enabled!(log::LogLevel::Info) {
+            if let Some(addr) = shake.remote_addr().unwrap() {
+                info!("Connection opened to {}.", addr);
+            }
+        }
         Ok(())
     }
 
