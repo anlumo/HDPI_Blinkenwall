@@ -8,6 +8,9 @@ glium = "*"
 glutin = "*"
 chrono = "0.3"
 ws = "0.6"
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
 
 [dependencies.rusqlite]
 version = "0.10"

@@ -3,9 +3,18 @@ extern crate glium;
 extern crate chrono;
 use glium::glutin;
 use glium::DisplayBuild;
+#[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate serde_json;
 
 mod shadertoy;
 use shadertoy::ShaderToy;
+
+mod server;
+mod database;
+
+use std::sync::mpsc;
 
 const FRAGMENT_SHADER: &'static str = "
 // [SIG15] Mario World 1-1 by Krzysztof Narkowicz @knarkowicz
@@ -1451,7 +1460,27 @@ fn main() {
 
     let mut shadertoy = ShaderToy::new(&display, FRAGMENT_SHADER);
 
+    let database = database::Database::new();
+    let (server_thread, command_receiver) = server::open_server(1337);
+
     loop {
         shadertoy.step(&display);
+        match command_receiver.try_recv() {
+            Ok(message) => {
+                let (cmd, resp) = message;
+                match cmd {
+                    server::Command::List => resp.send_list(database.list()),
+                    server::Command::Read(key) => resp.send_error(404, "Not implemented"),
+                    server::Command::Write(key, content) => resp.send_error(404, "Not implemented"),
+                    server::Command::Create(content) => resp.send_ok(),
+                    server::Command::Activate(key) => resp.send_ok(),
+                }.unwrap();
+            },
+            Err(err) => match err {
+                mpsc::TryRecvError::Empty => (),
+                mpsc::TryRecvError::Disconnected => break,
+            }
+        }
     }
+    let _ = server_thread.join().unwrap();
 }
