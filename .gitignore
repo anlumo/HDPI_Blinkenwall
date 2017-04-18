@@ -2,3 +2,20 @@
 # will have compiled files and executables
 /target/
 target
+# See https://help.github.com/ignore-files/ for more about ignoring files.
+
+# compiled output
+blinkenwall/dist
+blinkenwall/tmp
+
+# dependencies
+blinkenwall/node_modules
+blinkenwall/bower_components
+
+# misc
+blinkenwall/.sass-cache
+blinkenwall/connect.lock
+blinkenwall/coverage/*
+blinkenwall/libpeerconnection.log
+npm-debug.log*
+testem.log

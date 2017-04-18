@@ -1,0 +1,19 @@
+<div class="ui grid">
+  <div class="left floated six wide column">
+    <h1 class="ui header">ShaderToy</h1>
+  </div>
+  <div class="right floated right aligned">
+    {{#link-to 'shadertoy.edit' tagName='button' class="ui icon button"}}
+      <i class="plus icon"></i>
+    {{/link-to}}
+  </div>
+  <div class="right floated right aligned">
+    <div class="ui search">
+      {{input class="prompt" type="text" placeholder="Search"}}
+      <div class="results"></div>
+    </div>
+  </div>
+</div>
+<div class="ui segment">
+  {{outlet}}
+</div>

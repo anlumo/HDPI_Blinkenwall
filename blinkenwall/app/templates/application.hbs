@@ -1,0 +1,17 @@
+<div class="ui fixed inverted menu">
+  <div class="ui container">
+    {{#link-to 'index' class="header item"}}<i class="film icon"></i> Blinkenwall{{/link-to}}
+    {{#link-to 'shadertoy' class="item"}}ShaderToy{{/link-to}}
+    {{#link-to 'youtube' class="item"}}YouTube{{/link-to}}
+    {{#link-to 'emulator' class="item"}}Emulator{{/link-to}}
+    {{#link-to 'vnc' class="item"}}VNC{{/link-to}}
+  </div>
+</div>
+<div class="ui main text">
+  {{outlet}}
+</div>
+<div class="ui inverted vertical footer segment">
+  <div class="ui center aligned container">
+    Copyright blah
+  </div/>
+</div>
