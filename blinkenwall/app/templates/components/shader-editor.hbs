@@ -1,0 +1,23 @@
+<div>
+  <p>Available uniforms:</p>
+  <ul>
+    <li><span class="code">float iGlobalTime</span>: Time elapsed since render start</li>
+    <li><span class="code">float3 iResolution</span>: Buffer resolution in pixels</li>
+    <li><span class="code">float4 iDate</span>: [year, month, day, seconds from midnight]</li>
+    <li><span class="code">int iFrame</span>: number of rendered frames for this shader</li>
+  </ul>
+</div>
+{{ember-ace lines=40 value=source update=(action 'valueUpdated') mode="ace/mode/glsl"}}
+<div class="ui text menu">
+  <div class="item">
+    <button class="ui primary icon button" title="Compile" {{action 'compile'}}><i class="play icon"></i></button>
+  </div>
+  <div class="right menu">
+    <div class="item">
+      <div class="ui icon button" title="Maximize" {{action 'maximize'}}><i class="maximize icon"></i></div>
+    </div>
+    <div class="item">
+      <div class="ui icon button" title="Help" {{action 'help'}}><i class="help icon"></i></div>
+    </div>
+  </div>
+</div>

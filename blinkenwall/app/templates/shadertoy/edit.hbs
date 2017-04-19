@@ -1,1 +1,13 @@
-{{outlet}}
+<div class="edit">
+  <div class="shader-preview">
+    {{shader-preview source=source}}
+    <div class="ui segment">
+      <div class="ui large input shadertitle">
+        {{input type="text" placeholder="Title"}}
+      </div>
+      <h3 class="ui header">Description</h3>
+      <textarea rows="10" class="shaderdescription"></textarea>
+    </div>
+  </div>
+  {{shader-editor class="ui segment shader-editor" compile=(action 'compile')}}
+</div>

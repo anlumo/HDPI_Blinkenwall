@@ -7,3 +7,26 @@
   margin: 5em 0em 0em;
   padding: 5em 0em;
 }
+.edit {
+  display: flex;
+}
+canvas.preview {
+  width: 384px;
+  height: 288px;
+}
+.shader-preview {
+  margin-top: 20px;
+  margin-right: 20px;
+  flex-basis: 384px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+.shader-editor {
+  flex-grow: 1;
+}
+span.code {
+  font-family: monospace;
+}
+.shaderdescription, .shadertitle {
+  width: 100%;
+}
