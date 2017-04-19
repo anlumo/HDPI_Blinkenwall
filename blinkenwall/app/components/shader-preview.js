@@ -91,6 +91,9 @@ export default Ember.Component.extend({
       window.requestAnimationFrame(this.animate);
     });
   },
+  willDestroyElement() {
+    this.animate = null;
+  },
 
   configureGl() {
     let gl = this.get('gl');
@@ -170,8 +173,10 @@ export default Ember.Component.extend({
     let gl = this.get('gl');
     if (!gl) { return; }
 
-    this.draw();
-    window.requestAnimationFrame(this.animate);
+    if (this.animate) {
+      this.draw();
+      window.requestAnimationFrame(this.animate);
+    }
   },
 
   programFromCompiledShadersAndUniformNames(gl, vertexShader, fragmentShader, uniformNames) {
