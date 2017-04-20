@@ -23,7 +23,7 @@ impl Video {
     pub fn new(win: &WinRef) -> Video {
         let mut ptr = Box::new(win);
         let mut mpv_builder = mpv::MpvHandlerBuilder::new().expect("Error while creating MPV builder");
-        mpv_builder.set_option("ytdl", "yes");
+        mpv_builder.set_option("ytdl", "yes").unwrap();
         mpv_builder.try_hardware_decoding().unwrap();
         Video {
             player: mpv_builder.build_with_gl(Some(get_proc_address), &mut ptr as *mut _ as *mut c_void).expect("Error while initializing MPV with opengl"),
@@ -48,7 +48,7 @@ impl Video {
                     Some((width, height)) => {
                         if self.player.is_update_available() {
                             self.player.draw(0, width as i32, -(height as i32)).expect("Failed to draw on glutin window");
-                            win.swap_buffers();
+                            win.swap_buffers().unwrap();
                         }
                     },
                     None => {}

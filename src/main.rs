@@ -403,10 +403,10 @@ fn main() {
                 let (cmd, resp) = message;
                 match cmd {
                     server::Command::List => resp.send_list(database.list()),
-                    server::Command::Read(key) => resp.send_error(404, "Not implemented"),
-                    server::Command::Write(key, content) => resp.send_error(404, "Not implemented"),
-                    server::Command::Create(content) => resp.send_ok(),
-                    server::Command::Activate(key) => resp.send_ok(),
+                    server::Command::Read(_) => resp.send_error(404, "Not implemented"),
+                    server::Command::Write(_, _) => resp.send_error(404, "Not implemented"),
+                    server::Command::Create(_) => resp.send_ok(),
+                    server::Command::Activate(_) => resp.send_ok(),
                     server::Command::PlayVideo(url) => {
                         video.play(&url);
                         resp.send_ok()
