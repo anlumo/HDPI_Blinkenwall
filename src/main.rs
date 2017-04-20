@@ -17,481 +17,361 @@ use shadertoy::ShaderToy;
 mod server;
 mod database;
 
+extern crate mpv;
+mod video;
+use video::Video;
+
 use std::sync::mpsc;
 
-const FRAGMENT_SHADER: &'static str = r##"
 // https://www.shadertoy.com/view/XssczX
-#define PI 3.14159265359
-#define SOFT_STEPS 16
-#define RAYS_STEPS 100
 
-// hopefully this should compile to a const mat2
-#define rot_const(a) (mat2(cos(a), sin(a), -sin(a), cos(a)))
+const FRAGMENT_SHADER: &'static str = r##"
+// https://www.shadertoy.com/view/XlfGzH
+float pi = 3.141592;
 
-// Fabrice's rotation matrix
-mat2 rot( in float a ) {
-    vec2 v = sin(vec2(PI*0.5, 0) + a);
-    return mat2(v, -v.y, v.x);
+float hash(float n)
+{
+    return fract(sin(n)*43758.5453123);
 }
 
-// Dave Hoskins hash function
-vec3 hash33( in vec3 p3 ) {
-    #define HASHSCALE3 vec3(.1031, .1030, .0973)
-	p3 = fract(p3 * HASHSCALE3);
-    p3 += dot(p3, p3.yxz+19.19);
-    return fract((p3.xxy + p3.yxx)*p3.zyx);
+float noise2(in vec2 x)
+{
+    vec2 p = floor(x);
+    vec2 f = fract(x);
+    f = f*f*(3.0-2.0*f);
+
+    float n = p.x + p.y*157.0;
+    return mix(mix(hash(n+0.0), hash(n+1.0),f.x), mix(hash(n+157.0), hash(n+158.0),f.x),f.y);
 }
 
-// iq's functions
-float sdBox( in vec3 p, in vec3 b ) {
-	vec3 d = abs(p) - b;
-	return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
-}
-float sdCapsule( in vec3 p, in vec3 a, in vec3 b, in float r ) {
-    vec3 pa = p - a, ba = b - a;
-    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
-    return length( pa - ba*h ) - r;
-}
-float sdEllipsoid( in vec3 p, in vec3 r ) {
-    return (length( p/r ) - 1.0) * min(min(r.x,r.y),r.z);
-}
-float smin( in float a, in float b, in float s ) {
-    float h = clamp( 0.5 + 0.5*(b-a)/s, 0.0, 1.0 );
-    return mix(b, a, h) - h*(1.0-h)*s;
-}
-float smax( in float a, in float b, in float s ) {
-    float h = clamp( 0.5 + 0.5*(a-b)/s, 0.0, 1.0 );
-    return mix(b, a, h) + h*(1.0-h)*s;
+float noise3(in vec3 x)
+{
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+    f = f*f*(3.0-2.0*f);
+
+    float n = p.x + p.y*157.0 + 113.0*p.z;
+    return mix(
+        mix(mix(hash(n+  0.0), hash(n+  1.0),f.x), mix(hash(n+157.0), hash(n+158.0),f.x),f.y),
+        mix(mix(hash(n+113.0), hash(n+114.0),f.x), mix(hash(n+270.0), hash(n+271.0),f.x),f.y),f.z);
 }
 
-// intersection of 2 circles, by eiffie (used for the legs IKs)
-vec2 intersect(vec3 c0, vec3 c1) {
-    vec2 dxy = vec2(c1.xy - c0.xy);
-    float d = length(dxy);
-    float a = (c0.z*c0.z - c1.z*c1.z + d*d)/(2.*d);
-    vec2 p2 = c0.xy + (a / d)*dxy;
-    float h = sqrt(c0.z*c0.z - a*a);
-    vec2 rxy = vec2(-dxy.y, dxy.x) * (h/d);
-    return p2 + rxy;
+vec2 r(vec2 v,float y)
+{
+    return cos(y)*v+sin(y)*vec2(-v.y,v.x);
 }
 
-// ant's legs distance function
-float deAntLeg(in vec3 p, in vec3 anchor, in vec3 legStart,
-               in float lenStart, in vec3 legEnd, in float lenEnd) {
+vec3 smin(vec3 a, vec3 b)
+{
+    if (a.x < b.x)
+        return a;
 
-	// express coordinates from the starting leg
-    vec3 inLeg = p - legStart;
-    vec3 legEndInStart = legEnd - legStart;
-    // express coordinates in the leg plane
-    vec3 xDir = normalize(vec3(legEnd.xy - legStart.xy, 0));
-    vec2 planar = vec2(dot(inLeg, xDir), inLeg.z);
-    vec2 endInPlanar = vec2(dot(legEndInStart, xDir), legEndInStart.z);
+    return b;
+}
 
-    // get intersection
-    vec2 jointPlanar = intersect( vec3(0, 0, lenStart), vec3(endInPlanar, lenEnd) );
-    // go back to 3D space
-    vec3 joint = legStart + xDir*jointPlanar.x + vec3(0, 0, 1)*jointPlanar.y;
+vec3 smax(vec3 a, vec3 b)
+{
+	if (a.x > b.x)
+        return a;
 
-    float d = sdCapsule( p, anchor, legStart, 0.03 );
-    d = smin(d, sdCapsule( p, legStart, joint, 0.02 ), 0.02);
-    d = smin(d, sdCapsule( p, joint, legEnd, 0.015 ), 0.02);
+    return b;
+}
+
+vec3 sinv(vec3 a)
+{
+	return vec3(-a.x, a.y, a.z);
+}
+
+float sdSphere(vec3 p, float s)
+{
+  return length(p)-s;
+}
+
+float sdBox(vec3 p, vec3 b, float r)
+{
+  vec3 d = abs(p) - b;
+  return min(max(d.x,max(d.y,d.z)),0.0) +
+         length(max(d,0.0)) - r;
+}
+
+float sdCylinder( vec3 p, vec3 c )
+{
+  return length(p.xz-c.xy)-c.z;
+}
+
+float smoothmax( float a, float b, float k )
+{
+    return -log(exp(k*a) + exp(k*b))/-k;
+}
+
+float smoothmin( float a, float b, float k )
+{
+    return -log(exp(-k*a) + exp(-k*b))/k;
+}
+
+float cylsphere(vec3 p)
+{
+    float d = max(sdCylinder(p, vec3(0.0, 0.0, 0.04)), sdBox(p, vec3(0.3), 0.0));
+    d = smoothmin(d, sdSphere(p+vec3(0.0, 0.35, 0.0), 0.08), 48.0);
+    d = smoothmin(d, sdSphere(p-vec3(0.0, 0.35, 0.0), 0.08), 48.0);
     return d;
-
 }
 
-// ant distance function, phase is the animation (between 0 and 1)
-float deAnt( in vec3 p, in float phase, out vec3 color1, out vec3 color2, out float roughness ) {
+vec3 greeble0(vec3 p, float phase)
+{
+    float t = mod(phase + iGlobalTime * 0.5, 1.0);
+    float rotation = sign(phase-0.5) * min(1.0, max(0.0, -0.2 + 5.0 * t)) * pi / 2.0;
+    float translation = min(1.0, max(0.0, 2.0 * sin(min(t - 0.02, 0.5) * 10.0)));
 
-    color1 = vec3(0.90, 0.18, 0.01);
-    color2 = vec3(0.35, 0.10, 0.01);
-    roughness = 12.0;
-
-    p = p.zyx;
-
-    // bounding box optimization
-    float bb = sdBox(p, vec3(1.1, 0.5, 0.5));
-    if (bb > 0.5) {
-        return bb;
-    }
-
-    p -= vec3(-0.05, 0, 0.75);
-
-    // 3 parts for the ant
-    const vec2 slopeCenter = vec2(0.4, 0.8);
-    vec2 inSlope = slopeCenter - p.xz;
-    float slope = atan(inSlope.y, inSlope.x);
-    slope /= PI;
-    float part = clamp(floor(slope * 10.0), 3.0, 5.0);
-    slope = (part + 0.5) / 10.0;
-    slope *= PI;
-    vec2 center = slopeCenter - vec2(cos(slope), sin(slope)) * 1.6;
-    vec3 partCenter = vec3(center.x, 0.0, center.y);
-
-    vec3 inPart = p - partCenter;
-    float side = sign(inPart.y);
-    inPart.y = abs(inPart.y);
-
-    float dist = bb;
-
-    if (part > 4.5) {
-
-        // rotation
-        inPart.x += 0.3;
-        float r = sin(phase*2.0*PI)*0.05;
-        inPart.xz *= rot(r-0.1);
-        inPart.x -= 0.3;
-
-        // abdomen
-        inPart -= vec3(0.33, 0.0, -0.02);
-        float radius = 0.1 + smoothstep(-0.2, 0.7, -inPart.x) * 0.5;
-
-        // add ridges
-        float s = cos(-inPart.x*40.0)*0.5+0.5;
-        s *= s; s *= s;
-        radius -= s*0.005;
-
-        dist = length(inPart) - radius;
-        float sMix = pow(s, 8.0);
-        color1 = mix(vec3(0.1, 0.05, 0.01), vec3(0.6, 0.5, 0.4), sMix);
-        color2 = mix(vec3(0.05, 0.02, 0.01), vec3(0.5, 0.4, 0.2), sMix);
-        roughness = 16.0 - s*12.0;
-
-    } else if (part > 3.5) {
-
-        // thorax
-        inPart += vec3(0.02, 0.0, -0.05);
-        inPart.xz *= rot_const(-0.3);
-
-        // pronotum
-        vec3 inThoraxA = inPart - vec3(-0.13, 0.0, 0.05);
-        float radiusA = 0.10 + smoothstep(-0.1, 0.5, inThoraxA.x) * 0.2;
-        radiusA -= smoothstep(-0.1, 0.2, inThoraxA.z) * 0.1;
-        float thoraxDistA = length(inThoraxA) - radiusA;
-
-        // propodeum
-        vec3 inThoraxB = inPart - vec3(0.06, 0.0, 0.03);
-        float radiusB = 0.05 + smoothstep(-0.1, 0.4, inThoraxB.x) * 0.2;
-        radiusB -= smoothstep(-0.1, 0.4, inThoraxA.z) * 0.1;
-        float thoraxDistB = length(inThoraxB) - radiusB;
-        dist = smin(thoraxDistA, thoraxDistB, 0.05);
-
-        // petiole
-        vec3 inThoraxC = inPart - vec3(0.24, 0.0, 0.0);
-        float radiusC = 0.05 - smoothstep(-0.1, 0.2, inThoraxC.z-inThoraxC.x*0.3) * 0.04;
-        float thoraxDistC = sdCapsule( inThoraxC, vec3(0), vec3(-0.03, 0, 0.11), radiusC);
-        dist = smin(dist, thoraxDistC, 0.03);
-
-        // add ridges
-        vec3 inRidges = inPart - vec3(0.01, 0.0, 0.1);
-        float ridgesDist = abs(length(inRidges) - 0.12);
-        dist += smoothstep(0.02, 0.0, ridgesDist) * 0.004;
-
-    } else if (part > 2.5) {
-
-        // head
-        inPart -= vec3(-0.09, 0.0, -0.06);
-        inPart.xz *= rot_const(0.3);
-        float radius = 0.07 + smoothstep(-0.15, 0.4, inPart.x) * 0.3;
-        radius -= smoothstep(0.0, 0.4, abs(inPart.z))*0.2;
-        dist = length(inPart) - radius;
-
-        // frontal carina
-        vec3 inCarina = inPart - vec3(0.02, 0.0, 0.09);
-        inCarina.xy *= rot_const(-0.4);
-        inCarina.xz *= rot_const(0.1);
-        float carina = sdBox( inCarina, vec3(0.1, 0.05, 0.01) ) - 0.01;
-        dist = smin(dist, carina, 0.05);
-
-        // antenna
-        vec3 inAntenna = inPart - vec3(-0.03, 0.1, 0.1);
-        inAntenna.yz *= rot_const(-0.4);
-        inAntenna.xz *= rot(sin((phase+side*0.25)*2.0*PI)*0.3-0.2);
-        const vec3 funiculusStart = vec3(0, 0, 0.3);
-        float scapeRadius = 0.007 + inAntenna.z*0.04;
-        float scape = sdCapsule( inAntenna, vec3(0), funiculusStart, scapeRadius );
-        vec3 funiculusDir = normalize(vec3(-0.5, 0.0, -0.1));
-        funiculusDir.xz *= rot(sin((phase+side*0.25)*4.0*PI)*0.2);
-        float funiculusRadius = dot(funiculusDir, inAntenna - funiculusStart);
-        funiculusRadius = abs(sin(funiculusRadius*67.0));
-        funiculusRadius = 0.01 + funiculusRadius*0.004;
-        float funiculus = sdCapsule(inAntenna, funiculusStart,
-                                    funiculusStart+funiculusDir*0.5, funiculusRadius );
-        float antennaDist = min(scape, funiculus);
-        dist = min(dist, antennaDist);
-
-        // mandibles
-        vec3 inMandibles = inPart;
-        inMandibles.xy *= rot(sin(phase*4.0*PI)*0.1-0.1);
-        float mandiblesOuter = sdEllipsoid( inMandibles, vec3(0.25, 0.14, 0.1) );
-        float mandiblesInner = sdEllipsoid( inMandibles, vec3(0.15, 0.1, 0.4) );
-        float mandibles = smax(mandiblesOuter, -mandiblesInner, 0.05);
-        mandibles = smax(mandibles, 0.005-inMandibles.y+sin(inMandibles.x*300.0)*0.005, 0.01);
-        dist = smin(dist, mandibles, 0.05);
-
-        // eyes
-        float eyes = sdEllipsoid( inPart - vec3(0.21, 0.15, 0.03), vec3(0.06, 0.05, 0.05 ) );
-        if (eyes < dist) {
-            color1 = color2 = vec3(0.05);
-            roughness = 32.0;
-            dist = eyes;
-        }
-
-    }
-
-    // add a capsule in the center to connect the parts
-    float connector = sdCapsule( p, vec3(-0.15, 0, -0.63), vec3(0.5, 0, -0.83), 0.03);
-    dist = min(dist, connector);
-
-    // add legs
-    vec3 inLegs = p;
-    inLegs.y = abs(inLegs.y);
-    phase += side*0.25;
-
-    float angleA = (phase)*PI*2.0;
-    vec3 legAOffset = vec3(cos(angleA), 0, max(0.0, sin(angleA)))*0.2;
-    float legA = deAntLeg(inLegs, vec3(0.05, 0.0, -0.75),
-                          vec3(0.1, 0.1, -0.82), 0.25,
-                          vec3(-0.2, 0.4, -1.2)+legAOffset, 0.5);
-    float angleB = (phase+0.33)*PI*2.0;
-    vec3 legBOffset = vec3(cos(angleB), 0, max(0.0, sin(angleB)))*0.2;
-    float legB = deAntLeg(inLegs, vec3(0.18, 0.0, -0.8),
-                          vec3(0.2, 0.1, -0.85), 0.3,
-                          vec3(0.3, 0.5, -1.2)+legBOffset, 0.6);
-    float angleC = (phase+0.66)*PI*2.0;
-    vec3 legCOffset = vec3(cos(angleC), 0, max(0.0, sin(angleC)))*0.2;
-    float legC = deAntLeg(inLegs, vec3(0.25, 0.0, -0.8),
-                          vec3(0.3, 0.1, -0.85), 0.4,
-                          vec3(0.6, 0.4, -1.2)+legCOffset, 0.7);
-
-    float distLegs = min(min(legA, legB), legC);
-    if (distLegs < dist) {
-        color1 = vec3(0.35, 0.10, 0.01);
-        color2 = vec3(0.05, 0.02, 0.01);
-        dist = distLegs;
-    }
-
-    return dist;
+    float d = sdBox(p, vec3(0.4), 0.075);
+    float e = sdSphere(p - vec3(0.0, 0.6, 0.0), 0.2);
+    d = smoothmax(d, -e, 32.0);
+    p.y -= translation * 0.3 - 0.1;
+    p.xz = r(p.xz, rotation);
+    e = max(sdCylinder(p, vec3(0.0, 0.0, 0.1)), sdBox(p, vec3(0.8), 0.0));
+    vec3 q = p;
+    q.y -= 0.8;
+    q.yz = r(q.yz,pi/2.0);
+    e = smoothmin(e, cylsphere(q), 16.0);
+    q.xy = r(q.xy,pi/2.0);
+    e = smoothmin(e, cylsphere(q), 16.0);
+    return smin(vec3(d, 0.0, 0.0), vec3(e, 1.0, 0.0));
 }
 
-// main distance function, coordinates in, distance and surface parameters out
-float de( in vec3 p, out vec3 color1, out vec3 color2, out float roughness ) {
+vec3 greeble1(vec3 p, float phase)
+{
+    float d = sdBox(p, vec3(0.425), 0.05);
+    d = smoothmax(d, -sdBox(p + vec3(0.0, 0.0, 0.3), vec3(0.3, 1.0, 0.01), 0.0), 32.0);
+    d = smoothmax(d, -sdBox(p - vec3(0.0, 0.0, 0.3), vec3(0.3, 1.0, 0.01), 0.0), 32.0);
+    d = smoothmax(d, -sdBox(p + vec3(0.3, 0.0, 0.0), vec3(0.01, 1.0, 0.3), 0.0), 32.0);
+    d = smoothmax(d, -sdBox(p - vec3(0.3, 0.0, 0.0), vec3(0.01, 1.0, 0.3), 0.0), 32.0);
 
-    color1 = vec3(0.7);
-    color2 = vec3(0.7);
-    roughness = 4.0;
-
-    // perimeter of the moebius strip is 38
-    #define RADIUS (1.0/(PI*2.0)*38.0)
-
-    // cylindrical coordinates
-    vec2 cyl = vec2(length(p.xy), p.z);
-    float theta = atan(p.x, p.y);
-    vec2 inCyl = vec2(RADIUS, 0) - cyl;
-    // rotate 180° to form the loop
-    inCyl *= rot(theta*1.5-2.0);
-    // coordinates in a torus (cylindrical coordinates + position on the stripe)
-    vec3 inTor = vec3(inCyl, theta * RADIUS);
-
-    // add the band
-    float bandDist = sdBox(inTor, vec3(0.05, 1, 100)) - 0.05;
-    float d = bandDist;
-    // add holes
-    vec3 inHole = vec3(mod(inTor.yz, vec2(0.5)) - vec2(0.25), inTor.x);
-    inHole.xyz = inHole.zxy;
-    float holeDist = sdBox(inHole, vec3(0.18));
-    d = smax(d, -holeDist, 0.05);
-
-    // add ants
-    vec3 inTorObj = vec3(abs(inTor.x), inTor.y, inTor.z + iGlobalTime*1.3 + sign(inTor.x));
-    float ant = floor(inTorObj.z / 4.0);
-    vec3 objCenter = vec3(0.6, 0, ant * 4.0 + 2.0);
-    float phase = fract(iGlobalTime) + mod(ant, 9.0) / 9.0;
-    vec3 antColor1 = vec3(0.0);
-    vec3 antColor2 = vec3(0.0);
-    float antRoughness = 0.0;
-    float antDist = deAnt(inTorObj-objCenter, phase, antColor1, antColor2, antRoughness);
-    if (antDist < d) {
-        color1 = antColor1;
-        color2 = antColor2;
-        roughness = antRoughness;
-        return antDist;
-    }
-
-	return d;
+    float t = mod(phase + sign(phase-0.5) * iGlobalTime * 0.5, 1.0);
+    float x = max(-1.0, min(1.0, 4.0*cos(t*2.0*pi)));
+    float y = max(-1.0, min(1.0, 4.0*sin(t*2.0*pi)));
+    x *= 0.3;
+    y *= 0.3;
+    vec3 q = p + vec3(x, 0, y);
+    float e = sdBox(q, vec3(0.03, 0.75, 0.03), 0.0);
+    q.y -= 0.75;
+    e = smoothmin(e, sdSphere(q, 0.1), 32.0);
+    return smin(vec3(d, 2.0, 0.0), vec3(e, 3.0, 0.0));
 }
 
-float de( in vec3 p ) {
-    vec3 dummy1 = vec3(0);
-    vec3 dummy2 = vec3(0);
-    float dummy3 = 0.0;
-    return de(p, dummy1, dummy2, dummy3);
+vec3 greeble2(vec3 p, float phase)
+{
+    float d = sdBox(p, vec3(0.425), 0.05);
+    d = smoothmax(d, -sdBox(p + vec3(0.2, 0.0, 0.0), vec3(0.01, 1.0, 0.3), 0.0), 32.0);
+    d = smoothmax(d, -sdBox(p - vec3(0.2, 0.0, 0.0), vec3(0.01, 1.0, 0.3), 0.0), 32.0);
+
+    float x = pow(mod(phase + sign(phase-0.5) * iGlobalTime * 0.5, 1.0), 2.0) * 2.0 * pi;
+    float t = max(-0.5, min(0.5, sin(x)));
+    p.yz = r(p.yz, t);
+    vec3 q = p + vec3(0.0, 0.25, 0.0);
+    float e =  sdBox(q - vec3(0.2, 0.0, 0.0), vec3(0.02, 1.0, 0.02), 0.0);
+    e = min(e, sdBox(q + vec3(0.2, 0.0, 0.0), vec3(0.02, 1.0, 0.02), 0.0));
+    e = min(e, sdBox(q - vec3(0.0, 1.0, 0.0), vec3(0.175, 0.02, 0.02), 0.0));
+    e = smoothmin(e, sdSphere(q - vec3(0.2, 1.01, 0.0), 0.03), 32.0);
+    e = smoothmin(e, sdSphere(q - vec3(-0.2, 1.01, 0.0), 0.03), 32.0);
+    q.y -= 1.0;
+    q.xy = r(q.xy, pi / 2.0);
+    e = smoothmin(e, max(sdCylinder(q, vec3(0.0, 0.0, 0.03)), sdBox(q, vec3(0.1), 0.0)), 32.0);
+    return smin(vec3(d, 4.0, 0.0), vec3(e, 5.0, 0.0));
 }
 
-// normal from backward difference
-vec3 computeNormal( in vec3 p, in float d ) {
-	const vec3 e = vec3(0.0, 0.01, 0.0);
-	return normalize(vec3(
-		d-de(p-e.yxx),
-		d-de(p-e.xyx),
-		d-de(p-e.xxy)));
+vec3 greeble3(vec3 p, float phase)
+{
+    float d = sdBox(p, vec3(0.4), 0.08);
+    ivec2 i = ivec2(p.xz / 0.15 + floor(phase * 815.0));
+    float phase2 = noise2(vec2(i));
+    vec3 q = p;
+    q.xz = mod(q.xz, 0.15);
+    q.xz -= 0.075;
+    q.y -= 0.5;
+    float hole = max(sdBox(q, vec3(0.05, 1.0, 0.05), 0.0), sdBox(p, vec3(0.3, 2.0, 0.3), 0.0));
+    d = smoothmax(d, -hole, 96.0);
+
+    float t = phase2 * 2.0 * pi + iGlobalTime * 8.0;
+    q.y -= 0.1 * max(-0.5, min(0.5, sin(t)));
+    q.y += 0.5;
+    float e = sdBox(q, vec3(0.025, 0.6, 0.025), 0.0);
+    e = max(e, sdBox(p, vec3(0.3, 2.0, 0.3), 0.0));
+    return smin(vec3(d, 6.0, 0.0), vec3(e, 7.0, 0.0));
 }
 
-// cone trace the soft shadows
-float computeSoftShadows( in vec3 from, in vec3 dir, in float theta ) {
-    float sinTheta = sin(theta);
-    float acc = 1.0;
-    float totdist = 0.0;
-    for (int i = 0 ; i < SOFT_STEPS ; i++) {
-        vec3 p = from + totdist * dir;
-        float dist = de(p);
-        float prox = dist / (totdist*sinTheta);
-        acc *= clamp(prox * 0.5 + 0.5, 0.0, 1.0);
-        if (acc < 0.01) break;
-        totdist += max(0.01, dist*0.85);
-    }
-    return acc;
+vec3 greeble4(vec3 p, float phase)
+{
+    float angle = floor(phase * 4.0) * 0.5 * pi;
+    p.xz = r(p.xz, angle);
+    float d = sdBox(p, vec3(0.4), 0.08);
+    d = smoothmax(d, -sdBox(p - vec3(0.2, 0.0, 0.1), vec3(0.1, 1.0, 0.2), 0.0), 32.0);
+    d = smoothmax(d, -sdBox(p + vec3(0.2, 0.0, -0.1), vec3(0.1, 1.0, 0.2), 0.0), 32.0);
+    vec3 q = p - vec3(0.0, 0.8, -0.3);
+    float e = sdBox(q + vec3(0.0, 0.2, 0.0), vec3(0.0, 0.15, 0.0), 0.1) / 0.6;
+    q /= 0.6;
+    q.yz = r(q.yz,pi/2.0);
+
+    float t = phase + 0.2 * iGlobalTime;
+    angle = 0.45 * max(-1.0, min(1.0, 4.0*cos(t*2.0*pi)));
+    float y = 0.5 + 0.5 * max(-1.0, min(1.0, 4.0*sin(t*2.0*pi)));
+    y = pow(y, 1.25 + 0.75 * cos(t*2.0*pi));
+    q.xy = r(q.xy, angle);
+    q.y += 0.4;
+
+    e = smoothmin(e, cylsphere(q), 16.0);
+    q += vec3(0.0, 0.35, 0.05);
+    e = min(e, sdBox(q, vec3(0.0, 0.0, -0.1), 0.2)) * 0.6;
+    float f = sdBox(q + vec3(0.0, 0.0, 1.2 - y), vec3(0.1), 0.0) * 0.6;
+    return smin(smin(vec3(d, 8.0, 0.0), vec3(e, 9.0, 0.0)), vec3(f, 10.0, 0.0));
 }
 
-// compute lighting at this position
-vec3 computeColor( in vec3 p, in vec3 dir, in vec2 fragCoord ) {
+vec3 greeble(vec3 p, float findex, float phase)
+{
+    const int indexCount = 6;
+    int index = int(findex * float(indexCount));
+    p.y -= phase * 0.2 - 0.2;
+    if (index == 0)
+        return greeble0(p, phase);
+    else if (index == 1)
+        return greeble1(p, phase);
+    else if (index == 2)
+        return greeble2(p, phase);
+    else if (index == 3)
+        return greeble3(p, phase);
+    else if (index == 4)
+        return greeble4(p, phase);
 
-    // sunlight and ambient
-    const vec3 sunLight = vec3(0.9, 0.8, 0.6)*9.0;
-    const vec3 sunLightDir = normalize(vec3(-2, -1, 3));
-    const vec3 subLight = vec3(0.4, 0.4, 0.8)*3.0;
-    const vec3 subLightDir = normalize(vec3(2, -1, -8));
-    const vec3 ambLight = vec3(0.7, 0.7, 0.9)*4.0;
-
-    // compute distance to get the surface albedo
-    vec3 albedo1 = vec3(0);
-    vec3 albedo2 = vec3(0);
-    float roughness = 0.0;
-    float dist = de(p, albedo1, albedo2, roughness);
-
-    // compute surface normal
-    vec3 normal = computeNormal(p, dist);
-
-    float specScale = (roughness+1.0)*0.25;
-    float sunLightDiff = max(0.0, dot(normal, sunLightDir));
-    float sunLightSpec = pow(max(0.0, dot(sunLightDir, reflect(dir, normal))), roughness);
-    sunLightSpec *= specScale;
-    float subLightDiff = max(0.0, dot(normal, subLightDir));
-    float subLightSpec = pow(max(0.0, dot(subLightDir, reflect(dir, normal))), roughness);
-    subLightSpec *= specScale;
-
-   	// soft shadows
-    float soft = 0.0;
-    if (sunLightDiff > 0.01) {
-        soft = computeSoftShadows(p+normal*0.05, sunLightDir, 0.2);
-    }
-
-    // fake subsurface scattering
-    float subsurface = max(0.0, dot(normal, -dir));
-    subsurface = pow(subsurface, 4.0);
-    vec3 albedo = mix(albedo2, albedo1, subsurface);
-
-    // do some arty sketchy stuff on the light
-    float sun = (sunLightDiff+sunLightSpec)*soft;
-    float sub = (subLightDiff+subLightSpec);
-    float amb = 1.0;
-    vec3 lightValues = vec3(sun, sub, amb);
-
-    // exposition
-    lightValues *= 0.06;
-    // gamma correction
-    lightValues = pow( lightValues, vec3(1.0/2.2) );
-    // cel shading
-    lightValues = floor(lightValues * 7.0) / 6.0;
-
-    // compose color
-    vec3 color = vec3(0);
-    color += albedo*sunLight*lightValues.x;
-    color += albedo*subLight*lightValues.y;
-    color += albedo*ambLight*lightValues.z;
-
-    return color;
+    return vec3(sdBox(p, vec3(0.4), 0.025), 10.0, 0.0);
 }
 
-void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
+vec3 f( vec3 p )
+{
+    ivec3 h = ivec3(p+1337.0);
+    float hash = noise2(vec2(h.xz));
+    h = ivec3(p+42.0);
+    float phase = noise2(vec2(h.xz));
+    vec3 q = p;
+    q.xz = mod(q.xz, 1.0);
+    q -= 0.5;
+	return greeble(q, hash, phase);
+}
 
-    // position of the camera
-    vec3 camPos = vec3(-40, 0, 0);
-    // user input
-    vec2 mouse=(iMouse.xy / iResolution.xy - 0.5) * 0.5;
-    mouse *= step(1.0, iMouse.z);
-    camPos.xz *= rot(mouse.y*-3.0+0.4);
-    camPos.xy *= rot(mouse.x*-10.0+0.2);
+vec3 colorize(float index)
+{
+    if (index == 0.0)
+        return vec3(0.4, 0.6, 0.2);
 
-    // direction of the camera
-    vec3 forward = normalize(vec3(0) - camPos);
-    // right and top vector
-    vec3 right = normalize(cross(vec3(0, 0, 1), forward));
-    vec3 top = cross(forward, right);
+    if (index == 1.0)
+        return vec3(0.6, 0.3, 0.2);
 
-    // create direction
-    vec2 uv = fragCoord.xy / iResolution.xy * 2.0 - 1.0;
-	uv.y *= iResolution.y / iResolution.x;
-    uv *= 0.2;
-    vec3 dir = normalize(forward + right*uv.x + top*uv.y);
+    if (index == 2.0)
+        return vec3(1.0, 0.8, 0.5);
 
-    // some noise is always useful
-    vec3 noise = hash33(vec3(fragCoord.xy, iFrame));
+    if (index == 3.0)
+        return vec3(0.9, 0.2, 0.6);
 
-    bool hit = false;
-    float prevDist = 0.0;
-    float borderAcc = 1.0;
+    if (index == 4.0)
+        return vec3(0.3, 0.6, 0.7);
 
-    float totdist = 0.0;
-    totdist += de(camPos)*noise.x;
+    if (index == 5.0)
+        return vec3(1.0, 1.0, 0.3);
 
-	for (int i = 0 ; i < RAYS_STEPS ; i++) {
-		vec3 p = camPos + totdist * dir;
-        float dist = de(p);
+    if (index == 6.0)
+        return vec3(0.7, 0.5, 0.7);
 
-// if you replace 0.0015 by the sine of the pixel angle, you get the average opacity in a pixel
-// by accumulating the opacity front to back you can get an anti-aliased edge
-// problem is you have to compute the normal to shade the surface and get the effective color
-// computing the normal at every steps is too expensive (unless the normal is analytical)
-// nonetheless the border color is constant so we can cone trace it without any trouble
+    if (index == 7.0)
+        return vec3(0.4, 0.3, 0.4);
 
-        // cone trace the border
-        if (dist > prevDist) {
-            float prox = dist / (totdist*0.0015);
-            float alpha = clamp(prox * 0.5 + 0.5, 0.0, 1.0);
-            borderAcc *= alpha;
-        }
+    if (index == 8.0)
+        return vec3(0.8, 0.3, 0.2);
 
-        // hit a surface, stop here
-        if (dist < 0.01) {
-            hit = true;
-            break;
-        }
+    if (index == 9.0)
+        return vec3(0.5, 0.8, 0.2);
 
-        // continue forward
-        totdist += min(dist*0.85, 100.0);
-        prevDist = dist;
+	return vec3(index / 10.0);
+}
+
+float ao(vec3 v, vec3 n)
+{
+    const int ao_iterations = 10;
+    const float ao_step = 0.2;
+    const float ao_scale = 0.75;
+
+	float sum = 0.0;
+	float att = 1.0;
+	float len = ao_step;
+
+	for (int i = 0; i < ao_iterations; i++)
+    {
+		sum += (len - f(v + n * len).x) * att;
+		len += ao_step;
+		att *= 0.5;
 	}
 
-    // color and lights
-    if (hit) {
-        vec3 p = camPos + totdist * dir;
-    	fragColor.rgb = computeColor(p, dir, fragCoord.xy);
-    } else {
-        fragColor.rgb = vec3(0.8, 0.8, 0.9);
+	return 1.0 - max(sum * ao_scale, 0.0);
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    fragColor.xyz = vec3(0);
+
+    vec3 q = vec3((fragCoord.xy / iResolution.xy - 0.5), 1.0);
+    float vignette = 1.0 - length(q.xy);
+    q.x *= iResolution.x / iResolution.y;
+    q.y -= 0.5;
+    vec3 p = vec3(0, 0.0, -10.0);
+    q = normalize(q);
+    q.xz = r(q.xz, iGlobalTime * 0.1);
+    p.y += 2.5;
+	p.z -= iGlobalTime*0.5;
+
+    float t=0.0;
+    vec3 d = vec3(0);
+    float steps = 0.0;
+    const float maxSteps = 96.0;
+    for (float tt = 0.0; tt < maxSteps; ++tt)
+    {
+        d = f(p+q*t);
+        t += d.x*0.45;
+        if(!(t<=50.0)||d.x<=0.0001)
+        {
+            break;
+        }
+        steps = tt;
     }
 
-    // add a black border
-    borderAcc = pow(borderAcc, 8.0);
-    fragColor.rgb = mix(vec3(0), fragColor.rgb, borderAcc);
+    vec3 glow = vec3(1.1, 1.1, 1.0);
+    vec3 fog = vec3(0.7, 0.75, 0.8);
+    vec3 color = fog;
 
-    // vigneting
-    vec2 p = fragCoord.xy / iResolution.xy * 2.0 - 1.0;
-    fragColor.rgb = mix(fragColor.rgb, vec3(0), dot(p, p)*0.2);
+    if (t <= 50.0)
+    {
+        vec3 hit = p+q*t;
 
-    // add some noise
-    fragColor.rgb += noise * 0.08 - 0.04;
+        vec2 e = vec2(0.001, 0.00);
+        vec3 normal= vec3( f(hit + e.xyy).x - f(hit - e.xyy).x, f(hit + e.yxy).x - f(hit - e.yxy).x, f(hit + e.yyx).x - f(hit - e.yyx).x) / (2.0 * e.x);
 
-    fragColor.a = 1.0;
+        normal= normalize(normal);
+
+        float fao = ao(hit, normal);
+        vec3 ldir = normalize(vec3(1.0, 1.0, -1.0));
+        vec3 light = (0.5 * fog.rgb + vec3(0.5 * fao * abs(dot(normal, ldir)))) * colorize(d.y); // diffuse
+        light += (1.0 - t / 50.0) * vec3(fao * pow(1.0 - abs(dot(normal, q)), 4.0)); // rim
+        q = reflect(q, normal);
+        light += fao * vec3(pow(abs(dot(q, ldir)), 16.0)); // specular
+        color = min(vec3(1), light);
+        color *= fao;
+    }
+
+    float luma = dot(color.rgb, vec3(0.3, 0.5, 0.2));
+    color = mix(color, 1.0 * luma * vec3(1.0, 0.9, 0.5), 2.0 * max(0.0, luma-0.5)); // yellow highlights
+    color = mix(color, 1.0 * luma * vec3(0.2, 0.5, 1.0), 2.0 * max(0.0, 0.5-luma)); // blue shadows
+    //color = mix(color, glow, 0.8 * pow(steps / 90.0, 8.0)); // glow
+    color = mix(color, fog, pow(min(1.0, t / 50.0), 0.5)); // fog
+    color = pow(color, vec3(0.8)); // gamma
+    color = smoothstep(0.0, 1.0, color); // contrast
+    color *= pow(vignette + 0.3, 0.5); // vignette
+    fragColor = vec4(color, 1.0);
 }
 "##;
 
@@ -506,8 +386,21 @@ fn main() {
         .with_vsync()
         .build_glium()
         .unwrap();
-    display.get_window().unwrap().set_inner_size(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    let window = display.get_window().unwrap();
+    window.set_inner_size(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
+    let mut video = Video::new(&window, "https://www.youtube.com/watch?v=d_S9YsD9Y0c");
+
+    video.play();
+
+    loop {
+        match video.step(&window) {
+            None => {},
+            Some(evt) => info!("MPV event: {:?}", evt),
+        }
+    }
+
+/*
     let mut shadertoy = ShaderToy::new(&display, FRAGMENT_SHADER);
 
     let database = database::Database::new();
@@ -533,4 +426,5 @@ fn main() {
         }
     }
     let _ = server_thread.join().unwrap();
+    */
 }
