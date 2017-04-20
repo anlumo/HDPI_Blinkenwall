@@ -10,6 +10,7 @@ pub enum Command {
     Write(String, String),
     Create(String),
     Activate(String),
+    PlayVideo(String),
 }
 
 pub fn open_server(port: u16) -> (thread::JoinHandle<ws::Result<()>>, Receiver<(Command, connection::ResponseHandler)>) {

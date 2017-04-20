@@ -389,25 +389,15 @@ fn main() {
     let window = display.get_window().unwrap();
     window.set_inner_size(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-    let mut video = Video::new(&window, "https://www.youtube.com/watch?v=d_S9YsD9Y0c");
-
-    video.play();
+    let database = database::Database::new();
+    let (server_thread, command_receiver) = server::open_server(1337);
+    let mut video = Video::new(&window);
 
     loop {
         match video.step(&window) {
             None => {},
             Some(evt) => info!("MPV event: {:?}", evt),
         }
-    }
-
-/*
-    let mut shadertoy = ShaderToy::new(&display, FRAGMENT_SHADER);
-
-    let database = database::Database::new();
-    let (server_thread, command_receiver) = server::open_server(1337);
-
-    loop {
-        shadertoy.step(&display);
         match command_receiver.try_recv() {
             Ok(message) => {
                 let (cmd, resp) = message;
@@ -417,6 +407,10 @@ fn main() {
                     server::Command::Write(key, content) => resp.send_error(404, "Not implemented"),
                     server::Command::Create(content) => resp.send_ok(),
                     server::Command::Activate(key) => resp.send_ok(),
+                    server::Command::PlayVideo(url) => {
+                        video.play(&url);
+                        resp.send_ok()
+                    }
                 }.unwrap();
             },
             Err(err) => match err {
@@ -425,6 +419,13 @@ fn main() {
             }
         }
     }
-    let _ = server_thread.join().unwrap();
+
+/*
+    let mut shadertoy = ShaderToy::new(&display, FRAGMENT_SHADER);
+
+    loop {
+        shadertoy.step(&display);
+    }
     */
+    let _ = server_thread.join().unwrap();
 }

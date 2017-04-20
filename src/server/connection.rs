@@ -81,6 +81,13 @@ impl Handler for Connection {
                                 error!("[{}] Activate message was invalid, ignored.", self.address);
                             }
                         },
+                        "play_video" => {
+                            if let serde_json::Value::String(ref url) = obj["url"] {
+                                self.channel.send((Command::PlayVideo(url.clone()), resp)).unwrap();
+                            } else {
+                                error!("[{}] PlayVideo message was invalid, ignored.", self.address);
+                            }
+                        }
                         _ => resp.send_error(404, "Unknown command").unwrap(),
                     }
                 } else {
