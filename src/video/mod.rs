@@ -48,8 +48,8 @@ impl<'a> Video<'a> {
             None => {
                 match win.get_inner_size() {
                     Some((width, height)) => {
-                        if (*self.player).is_update_available() {
-                            (*self.player).draw(0, width as i32, -(height as i32)).expect("Failed to draw on glutin window");
+                        if self.player.is_update_available() {
+                            self.player.draw(0, width as i32, -(height as i32)).expect("Failed to draw on glutin window");
                             win.swap_buffers();
                         }
                     },
