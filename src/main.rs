@@ -15,6 +15,8 @@ mod shadertoy;
 use shadertoy::ShaderToy;
 
 mod server;
+extern crate time;
+extern crate rusqlite;
 mod database;
 
 extern crate mpv;
@@ -389,7 +391,7 @@ fn main() {
     let window = display.get_window().unwrap();
     window.set_inner_size(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-    let database = database::Database::new();
+    let database = database::Database::new("blinkenwall.db");
     let (server_thread, command_receiver) = server::open_server(1337);
     let mut video = Video::new(&window);
 

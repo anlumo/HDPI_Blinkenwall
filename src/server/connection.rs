@@ -120,7 +120,7 @@ impl ResponseHandler {
         info!("[{}] Sending list", self.address);
         self.out.send(json!({
             "id": self.id,
-            "keys": "",
+            "keys": ids,
         }).to_string())
     }
 
