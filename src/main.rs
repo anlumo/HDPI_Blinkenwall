@@ -410,7 +410,11 @@ fn main() {
                     server::Command::PlayVideo(url) => {
                         video.play(&url);
                         resp.send_ok()
-                    }
+                    },
+                    server::Command::StopVideo => {
+                        video.stop();
+                        resp.send_ok()
+                    },
                 }.unwrap();
             },
             Err(err) => match err {

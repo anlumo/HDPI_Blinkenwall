@@ -87,7 +87,10 @@ impl Handler for Connection {
                             } else {
                                 error!("[{}] PlayVideo message was invalid, ignored.", self.address);
                             }
-                        }
+                        },
+                        "stop_video" => {
+                            self.channel.send((Command::StopVideo, resp)).unwrap();
+                        },
                         _ => resp.send_error(404, "Unknown command").unwrap(),
                     }
                 } else {
