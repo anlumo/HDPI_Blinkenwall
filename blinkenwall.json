@@ -1,0 +1,14 @@
+{
+  "database": {
+    "repository": "shadertoy.git"
+  },
+  "server": {
+    "port": 1337,
+    "address": "0.0.0.0",
+    "hostname": "blinkenwall.local"
+  },
+  "display": {
+    "width": 192,
+    "height": 144
+  }
+}
