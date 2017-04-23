@@ -2,7 +2,6 @@ use super::ws::{self, Sender, Handler, CloseCode, Handshake, Error, Result};
 use std::sync::mpsc;
 use super::Command;
 use serde_json;
-use log;
 
 #[derive(Serialize, Deserialize)]
 struct CommandHeader {
