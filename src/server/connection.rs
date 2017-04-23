@@ -116,11 +116,23 @@ impl Handler for Connection {
 }
 
 impl ResponseHandler {
+    pub fn address(&self) -> &str {
+        &self.address
+    }
+
     pub fn send_list(&self, ids: Vec<String>) -> Result<()> {
         info!("[{}] Sending list", self.address);
         self.out.send(json!({
             "id": self.id,
             "keys": ids,
+        }).to_string())
+    }
+
+    pub fn send_text(&self, content: &str) -> Result<()> {
+        info!("[{}] Sending text", self.address);
+        self.out.send(json!({
+            "id": self.id,
+            "data": content,
         }).to_string())
     }
 

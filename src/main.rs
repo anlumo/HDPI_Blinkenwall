@@ -39,6 +39,7 @@ fn main() {
         }
         Ok(config) => config
     };
+    let mut database = database::Database::new(&config.database.repository);
     let display = glutin::WindowBuilder::new()
         .with_depth_buffer(24)
         .with_fullscreen(glutin::get_primary_monitor())
@@ -61,9 +62,17 @@ fn main() {
                 let (cmd, resp) = message;
                 match cmd {
                     server::Command::List => resp.send_list(database.list().unwrap()),
-                    server::Command::Read(_) => resp.send_error(404, "Not implemented"),
+                    server::Command::Read(id) =>
+                        match database.read(&id) {
+                            Ok(content) => resp.send_text(&content),
+                            Err(error) => resp.send_error(400, &format!("{}", error))
+                        },
                     server::Command::Write(_, _) => resp.send_error(404, "Not implemented"),
-                    server::Command::Create(_) => resp.send_ok(),
+                    server::Command::Create(content) =>
+                        match database.add(&content, &format!("Add file for {}", resp.address())) {
+                            Ok(_) => resp.send_ok(),
+                            Err(error) => resp.send_error(400, &format!("{}", error))
+                        },
                     server::Command::Activate(_) => resp.send_ok(),
                     server::Command::PlayVideo(url) => {
                         video.play(&url);
