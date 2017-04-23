@@ -15,8 +15,7 @@ mod shadertoy;
 use shadertoy::ShaderToy;
 
 mod server;
-extern crate time;
-extern crate rusqlite;
+extern crate git2;
 mod database;
 
 extern crate mpv;
@@ -49,7 +48,6 @@ fn main() {
     let window = display.get_window().unwrap();
     window.set_inner_size(config.display.width, config.display.height);
 
-    let database = database::Database::new("blinkenwall.db");
     let (server_thread, command_receiver) = server::open_server(config.server.port);
     let mut video = Video::new(&window);
 
@@ -62,7 +60,7 @@ fn main() {
             Ok(message) => {
                 let (cmd, resp) = message;
                 match cmd {
-                    server::Command::List => resp.send_list(database.list()),
+                    server::Command::List => resp.send_list(database.list().unwrap()),
                     server::Command::Read(_) => resp.send_error(404, "Not implemented"),
                     server::Command::Write(_, _) => resp.send_error(404, "Not implemented"),
                     server::Command::Create(_) => resp.send_ok(),

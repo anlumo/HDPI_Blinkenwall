@@ -14,8 +14,4 @@ serde = "0.9"
 serde_derive = "0.9"
 serde_json = "0.9"
 mpv = "0.2"
-time = "0.1"
-
-[dependencies.rusqlite]
-version = "0.11"
-features = ["bundled"]
+git2 = "0.6"
