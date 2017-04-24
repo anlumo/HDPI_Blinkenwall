@@ -3,11 +3,12 @@
     {{shader-preview source=source}}
     <div class="ui segment">
       <div class="ui large input shadertitle">
-        {{input type="text" placeholder="Title"}}
+        {{input type="text" value=model.title placeholder="Title"}}
       </div>
       <h3 class="ui header">Description</h3>
-      <textarea rows="10" class="shaderdescription"></textarea>
+      {{textarea rows="10" class="shaderdescription" value=model.description}}
+      <button class="ui teal labeled icon button" {{action "publish"}}><i class="send icon"></i> Publish</button>
     </div>
   </div>
-  {{shader-editor shaderId=model class="ui segment shader-editor" compile=(action 'compile')}}
+  {{shader-editor shader=model class="ui segment shader-editor" compile=(action 'compile')}}
 </div>

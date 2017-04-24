@@ -6,6 +6,9 @@ export default Ember.Controller.extend({
       Ember.run.once(() => {
         this.set('source', source);
       });
+    },
+    publish() {
+      this.get('model').save();
     }
   }
 });
