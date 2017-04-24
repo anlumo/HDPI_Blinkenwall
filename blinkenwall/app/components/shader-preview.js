@@ -155,8 +155,10 @@ export default Ember.Component.extend({
   clearGl() {
     let gl = this.get('gl');
     gl.disable(gl.DEPTH_TEST);
-    gl.disable(gl.BLEND);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.disable(gl.CULL_FACE);
+    gl.clearColor(0,0,0,0);
     gl.clear(gl.COLOR_BUFFER_BIT);
   },
 

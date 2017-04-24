@@ -13,6 +13,7 @@
 canvas.preview {
   width: 384px;
   height: 288px;
+  background-color: black;
 }
 .shader-preview {
   margin-top: 20px;
