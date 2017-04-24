@@ -82,6 +82,7 @@ export default Ember.Component.extend({
       );
     } catch(e) {
       console.error(e);
+      return null;
     }
   }),
 
@@ -97,7 +98,6 @@ export default Ember.Component.extend({
 
   configureGl() {
     let gl = this.get('gl');
-    let canvas = gl.canvas;
     let program = this.get('program');
     if (program) {
       gl.useProgram(program);
@@ -164,9 +164,12 @@ export default Ember.Component.extend({
     let gl = this.get('gl');
     this.resizeCanvas();
     this.clearGl();
-    this.configureUniforms(gl, this.get('program'));
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, NUM_VERTICES);
-    this.incrementProperty('frameIndex');
+    let program = this.get('program');
+    if(program) {
+      this.configureUniforms(gl, program);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, NUM_VERTICES);
+      this.incrementProperty('frameIndex');
+    }
   },
 
   _animate() {

@@ -30,3 +30,18 @@ span.code {
 .shaderdescription, .shadertitle {
   width: 100%;
 }
+.shadertoy-preview {
+  position: relative;
+}
+.shadertoy-preview > .title {
+  text-decoration: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 10px 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

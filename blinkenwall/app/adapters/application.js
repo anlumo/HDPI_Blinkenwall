@@ -21,7 +21,6 @@ export default DS.Adapter.extend({
             }
           });
         });
-        break;
       case "shader":
         return new Ember.RSVP.Promise((resolve, reject) => {
           if(data.content) {
@@ -76,7 +75,12 @@ export default DS.Adapter.extend({
             key: id
           }, (response) => {
             if(response.data) {
-              let shader = JSON.parse(response.data);
+              let shader;
+              try {
+                shader = JSON.parse(response.data);
+              } catch(err /*jshint unused:false*/) {
+                shader = {};
+              }
               Ember.run(null, resolve, {
                 id: id,
                 title: shader.title,

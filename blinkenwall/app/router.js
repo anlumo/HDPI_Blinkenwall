@@ -8,7 +8,9 @@ const Router = Ember.Router.extend({
 
 Router.map(function() {
   this.route('shadertoy', function() {
-    this.route('edit');
+    this.route('edit', {
+      path: '/edit/:id'
+    });
   });
   this.route('youtube');
   this.route('emulator');
