@@ -70,7 +70,7 @@ fn main() {
                     server::Command::Write(_, _) => resp.send_error(404, "Not implemented"),
                     server::Command::Create(content) =>
                         match database.add(&content, &format!("Add file for {}", resp.address())) {
-                            Ok(id) => resp.send_id("shader", &id),
+                            Ok(id) => resp.send_id(&id),
                             Err(error) => resp.send_error(400, &format!("{}", error))
                         },
                     server::Command::Activate(_) => resp.send_ok(),

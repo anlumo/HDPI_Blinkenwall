@@ -135,11 +135,11 @@ impl ResponseHandler {
         }).to_string())
     }
 
-    pub fn send_id(&self, name: &str, id: &str) -> Result<()> {
+    pub fn send_id(&self, id: &str) -> Result<()> {
         info!("[{}] Sending id", self.address);
         self.out.send(json!({
             "id": self.id,
-            name: id,
+            "key": id,
         }).to_string())
     }
 
