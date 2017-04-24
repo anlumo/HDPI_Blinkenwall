@@ -16,6 +16,7 @@ use shadertoy::ShaderToy;
 
 mod server;
 extern crate git2;
+extern crate uuid;
 mod database;
 
 extern crate mpv;
