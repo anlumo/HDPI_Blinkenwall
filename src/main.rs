@@ -58,7 +58,7 @@ fn main() {
     let window = display.get_window().unwrap();
     window.set_inner_size(config.display.width, config.display.height);
 
-    let (server_thread, command_receiver) = server::open_server(config.server.port);
+    let (server_thread, command_receiver) = server::open_server(&config.server.hostname, config.server.port);
     let mut video = Video::new(&window);
     let mut shadertoy : Option<ShaderToy> = None;
 
