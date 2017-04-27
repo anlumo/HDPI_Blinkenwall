@@ -19,7 +19,7 @@ export default Ember.Service.extend({
     }
     let msg = Ember.$.extend({ id: index }, message);
     let ws = this.get('ws');
-    if(ws.readyState === 1) {
+    if(ws && ws.readyState === 1) {
       console.log("Sending websocket message", msg);
       this.get('ws').send(JSON.stringify(msg));
     } else {
@@ -51,8 +51,11 @@ export default Ember.Service.extend({
   },
 
   onClose() {
-    console.log("Websocket closed, trying to reconnect in 2s...");
-    Ember.run.later(this, "reconnect", 2000);
+    if(this.get('ws')) {
+      console.log("Websocket closed, trying to reconnect in 2s...");
+      this.set('ws', null);
+      Ember.run.later(this, "reconnect", 2000);
+    }
   },
 
   reconnect() {
