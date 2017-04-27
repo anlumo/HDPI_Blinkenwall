@@ -15,6 +15,7 @@ Router.map(function() {
   this.route('youtube');
   this.route('emulator');
   this.route('vnc');
+  this.route('retro');
 });
 
 export default Router;
