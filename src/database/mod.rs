@@ -95,7 +95,7 @@ impl Database {
 
         let mut treebuilder = self.repository.treebuilder(Some(&master.tree().unwrap()))?;
 
-        let uuid = uuid::Uuid::new_v5(&uuid::NAMESPACE_URL, "blinkenwall");
+        let uuid = uuid::Uuid::new_v4();
         let hyphenated = format!("{}", uuid.hyphenated());
         let metaname = format!("{}.meta", uuid.hyphenated());
 

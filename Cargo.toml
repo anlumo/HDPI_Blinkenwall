@@ -15,4 +15,4 @@ serde_derive = "0.9"
 serde_json = "0.9"
 mpv = "0.2"
 git2 = "0.6"
-uuid = { version = "0.5", features = ["v5"] }
+uuid = { version = "0.5", features = ["v4"] }
