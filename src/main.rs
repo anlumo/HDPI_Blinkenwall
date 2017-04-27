@@ -102,8 +102,14 @@ fn main() {
                             Err(error) => resp.send_error(400, &format!("{}", error))
                         },
                     server::Command::ActivateShader(id) => {
+                        info!("[{}] Activating shader {}", resp.address(), id);
                         match database.read(&id) {
                             Ok(shader) => {
+                                match active_view {
+                                    ActiveView::Video => video.stop(),
+                                    _ => {}
+                                }
+
                                 active_view = ActiveView::ShaderToy;
                                 shadertoy = Some(ShaderToy::new(&display, &shader.source));
                                 resp.send_ok()
@@ -116,11 +122,17 @@ fn main() {
                     server::Command::PlayVideo(url) => {
                         active_view = ActiveView::Video;
                         video.play(&url);
+                        shadertoy = None;
                         resp.send_ok()
                     },
                     server::Command::StopVideo => {
-                        active_view = ActiveView::Off;
-                        video.stop();
+                        match active_view {
+                            ActiveView::Video => {
+                                active_view = ActiveView::Off;
+                                video.stop();
+                            },
+                            _ => {}
+                        }
                         resp.send_ok()
                     },
                 }.unwrap();

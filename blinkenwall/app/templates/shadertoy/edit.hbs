@@ -8,6 +8,9 @@
       <h3 class="ui header">Description</h3>
       {{textarea rows="10" class="shaderdescription" value=model.description}}
       <button class="ui teal labeled icon button" {{action "publish"}}><i class="send icon"></i> Publish</button>
+      {{#unless isNew}}
+        <button class="ui yellow labeled icon button" {{action "activate"}}><i class="announcement icon"></i> Activate</button>
+      {{/unless}}
     </div>
   </div>
   {{shader-editor shader=model class="ui segment shader-editor" compile=(action 'compile')}}

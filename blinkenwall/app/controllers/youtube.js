@@ -8,13 +8,13 @@ export default Ember.Controller.extend({
     playVideo() {
       console.log("Play video", this.get('url'));
       this.get('serverConnection').send({
-        cmd: "play_video",
+        cmd: "video play",
         url: this.get('url'),
       });
     },
     stopVideo() {
       this.get('serverConnection').send({
-        cmd: "stop_video"
+        cmd: "video stop"
       });
     }
   }

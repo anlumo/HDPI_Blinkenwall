@@ -1,6 +1,12 @@
 import Ember from 'ember';
 
 export default Ember.Controller.extend({
+  serverConnection: Ember.inject.service(),
+
+  isNew: Ember.computed('model.id', function() {
+    return this.get('model.id') == null;
+  }),
+
   actions: {
     compile(source) {
       Ember.run.once(() => {
@@ -9,6 +15,12 @@ export default Ember.Controller.extend({
     },
     publish() {
       this.get('model').save();
+    },
+    activate() {
+      this.get('serverConnection').send({
+        cmd: "shader activate",
+        key: this.get('model.id')
+      });
     }
   }
 });
