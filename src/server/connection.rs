@@ -1,7 +1,8 @@
-use super::ws::{self, Sender, Handler, CloseCode, Handshake, Error, Result};
+use super::ws::{self, Sender, Handler, CloseCode, Handshake, Error, Result, ErrorKind};
 use std::sync::mpsc;
 use super::Command;
 use serde_json;
+use server::ShaderData;
 
 #[derive(Serialize, Deserialize)]
 struct CommandHeader {
@@ -25,6 +26,18 @@ impl Connection {
     pub fn new(out: Sender, tx: mpsc::Sender<(Command, ResponseHandler)>) -> Connection {
         Connection { out: out, channel: tx, address: "<unknown>".to_string() }
     }
+
+    fn parse_shaderdata(obj : &serde_json::Value) -> Result<ShaderData> {
+        if let (&serde_json::Value::String(ref title), &serde_json::Value::String(ref description), &serde_json::Value::String(ref source)) = (&obj["title"], &obj["description"], &obj["source"]) {
+            Ok(ShaderData {
+                title: title.to_string(),
+                description: description.to_string(),
+                source: source.to_string(),
+            })
+        } else {
+            Err(Error::new(ErrorKind::Internal, "Invalid shader format"))
+        }
+    }
 }
 
 impl Handler for Connection {
@@ -47,47 +60,52 @@ impl Handler for Connection {
                     let obj: serde_json::Value = serde_json::from_str(&text).unwrap();
                     let resp = ResponseHandler { out: self.out.clone(), id: id, address: self.address.clone() };
                     match cmd.as_ref() {
-                        "list" => self.channel.send((Command::List, resp)).unwrap(),
-                        "read" => {
+                        "shader list" => self.channel.send((Command::ListShaders, resp)).unwrap(),
+                        "shader read" => {
                             if let serde_json::Value::String(ref key) = obj["key"] {
-                                self.channel.send((Command::Read(key.clone()), resp)).unwrap();
+                                self.channel.send((Command::ReadShader(key.clone()), resp)).unwrap();
                             } else {
                                 error!("[{}] read message has invalid key, ignored.", self.address);
                             }
                         },
-                        "write" => {
+                        "shader write" => {
                             if let serde_json::Value::String(ref key) = obj["key"] {
-                                if let serde_json::Value::String(ref content) = obj["content"] {
-                                    self.channel.send((Command::Write(key.clone(), content.clone()), resp)).unwrap();
-                                } else {
-                                    error!("[{}] Write message has invalid content, ignored.", self.address);
+                                match Connection::parse_shaderdata(&obj) {
+                                    Ok(data) => self.channel.send((Command::WriteShader(key.clone(), data), resp)).unwrap(),
+                                    Err(error) => resp.send_error(400, &error.details).unwrap()
                                 }
                             } else {
-                                error!("[{}] Write message has invalid key, ignored.", self.address);
+                                resp.send_error(400, "Message has invalid key, ignored.").unwrap();
                             }
                         },
-                        "create" => {
-                            if let serde_json::Value::String(ref content) = obj["content"] {
-                                self.channel.send((Command::Create(content.clone()), resp)).unwrap();
-                            } else {
-                                error!("[{}] Create message was invalid, ignored.", self.address);
+                        "shader create" => {
+                            match Connection::parse_shaderdata(&obj) {
+                                Ok(data) => self.channel.send((Command::CreateShader(data), resp)).unwrap(),
+                                Err(error) => resp.send_error(400, &error.details).unwrap()
                             }
                         },
-                        "activate" => {
+                        "shader remove" => {
                             if let serde_json::Value::String(ref key) = obj["key"] {
-                                self.channel.send((Command::Activate(key.clone()), resp)).unwrap();
+                                self.channel.send((Command::RemoveShader(key.clone()), resp)).unwrap();
                             } else {
-                                error!("[{}] Activate message was invalid, ignored.", self.address);
+                                resp.send_error(400, "Message has invalid key, ignored.").unwrap();
+                            }
+                        }
+                        "shader activate" => {
+                            if let serde_json::Value::String(ref key) = obj["key"] {
+                                self.channel.send((Command::ActivateShader(key.clone()), resp)).unwrap();
+                            } else {
+                                resp.send_error(400, "Message has invalid key, ignored.").unwrap();
                             }
                         },
-                        "play_video" => {
+                        "video play" => {
                             if let serde_json::Value::String(ref url) = obj["url"] {
                                 self.channel.send((Command::PlayVideo(url.clone()), resp)).unwrap();
                             } else {
                                 error!("[{}] PlayVideo message was invalid, ignored.", self.address);
                             }
                         },
-                        "stop_video" => {
+                        "video stop" => {
                             self.channel.send((Command::StopVideo, resp)).unwrap();
                         },
                         _ => resp.send_error(404, "Unknown command").unwrap(),
@@ -127,11 +145,13 @@ impl ResponseHandler {
         }).to_string())
     }
 
-    pub fn send_text(&self, content: &str) -> Result<()> {
-        info!("[{}] Sending text", self.address);
+    pub fn send_shader(&self, shader: &ShaderData) -> Result<()> {
+        info!("[{}] Sending shader", self.address);
         self.out.send(json!({
             "id": self.id,
-            "data": content,
+            "title": shader.title,
+            "description": shader.description,
+            "source": shader.source,
         }).to_string())
     }
 

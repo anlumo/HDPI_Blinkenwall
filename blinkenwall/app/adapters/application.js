@@ -9,10 +9,9 @@ export default DS.Adapter.extend({
     switch(type.modelName) {
       case "shader-content":
         return new Ember.RSVP.Promise((resolve, reject) => {
-          this.get('serverConnection').send({
-            cmd: "create",
-            content: JSON.stringify(data)
-          }, (response) => {
+          this.get('serverConnection').send(jQuery.extend({
+            cmd: "shader create",
+          }, data), (response) => {
             if(response.key) {
               data.id = response.key;
               Ember.run(null, resolve, data);
@@ -48,7 +47,7 @@ export default DS.Adapter.extend({
     }
     return new Ember.RSVP.Promise((resolve, reject) => {
       this.get('serverConnection').send({
-        cmd: "list"
+        cmd: "shader list"
       }, (response) => {
         if(response.keys) {
           Ember.run(null, resolve, response.keys.map((key) => { return {id: key, type: "shader", content: key}; }));
@@ -71,21 +70,15 @@ export default DS.Adapter.extend({
       case "shader-content":
         return new Ember.RSVP.Promise((resolve, reject) => {
           this.get('serverConnection').send({
-            cmd: "read",
+            cmd: "shader read",
             key: id
           }, (response) => {
-            if(response.data) {
-              let shader;
-              try {
-                shader = JSON.parse(response.data);
-              } catch(err /*jshint unused:false*/) {
-                shader = {};
-              }
+            if(response.source) {
               Ember.run(null, resolve, {
                 id: id,
-                title: shader.title,
-                description: shader.description,
-                source: shader.source
+                title: response.title,
+                description: response.description,
+                source: response.source
               });
             } else {
               Ember.run(null, reject, response);

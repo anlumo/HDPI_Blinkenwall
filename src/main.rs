@@ -31,6 +31,14 @@ mod config;
 // https://www.shadertoy.com/view/XssczX
 // https://www.shadertoy.com/view/XlfGzH
 
+enum ActiveView {
+    Off,
+    ShaderToy,
+    Video,
+    Emulator,
+    VNC
+}
+
 fn main() {
     env_logger::init().unwrap();
     let config = match config::Config::new("blinkenwall.json") {
@@ -52,34 +60,66 @@ fn main() {
 
     let (server_thread, command_receiver) = server::open_server(config.server.port);
     let mut video = Video::new(&window);
+    let mut shadertoy : Option<ShaderToy> = None;
+
+    let mut active_view = ActiveView::Off;
 
     loop {
-        match video.step(&window) {
-            None => {},
-            Some(evt) => info!("MPV event: {:?}", evt),
+        match active_view {
+            ActiveView::Off => {},
+            ActiveView::ShaderToy => {
+                if let Some(ref mut s) = shadertoy {
+                    s.step(&display);
+                }
+            },
+            ActiveView::Video =>
+                match video.step(&window) {
+                    None => {},
+                    Some(evt) => info!("MPV event: {:?}", evt),
+                },
+            ActiveView::Emulator => {},
+            ActiveView::VNC => {},
         }
         match command_receiver.try_recv() {
             Ok(message) => {
                 let (cmd, resp) = message;
                 match cmd {
-                    server::Command::List => resp.send_list(database.list().unwrap()),
-                    server::Command::Read(id) =>
+                    server::Command::ListShaders => resp.send_list(database.list().unwrap()),
+                    server::Command::ReadShader(id) =>
                         match database.read(&id) {
-                            Ok(content) => resp.send_text(&content),
+                            Ok(shader) => resp.send_shader(&shader),
                             Err(error) => resp.send_error(400, &format!("{}", error))
                         },
-                    server::Command::Write(_, _) => resp.send_error(404, "Not implemented"),
-                    server::Command::Create(content) =>
-                        match database.add(&content, &format!("Add file for {}", resp.address())) {
+                    server::Command::WriteShader(_, _) => resp.send_error(404, "Not implemented"),
+                    server::Command::CreateShader(shader) =>
+                        match database.add(&shader, &format!("Add shader for {}", resp.address())) {
                             Ok(id) => resp.send_id(&id),
                             Err(error) => resp.send_error(400, &format!("{}", error))
                         },
-                    server::Command::Activate(_) => resp.send_ok(),
+                    server::Command::RemoveShader(id) =>
+                        match database.remove(&id, &format!("Remove shader for {}", resp.address())) {
+                            Ok(_) => resp.send_ok(),
+                            Err(error) => resp.send_error(400, &format!("{}", error))
+                        },
+                    server::Command::ActivateShader(id) => {
+                        match database.read(&id) {
+                            Ok(shader) => {
+                                active_view = ActiveView::ShaderToy;
+                                shadertoy = Some(ShaderToy::new(&display, &shader.source));
+                                resp.send_ok()
+                            },
+                            Err(error) => {
+                                resp.send_error(404, &error.message())
+                            }
+                        }
+                    },
                     server::Command::PlayVideo(url) => {
+                        active_view = ActiveView::Video;
                         video.play(&url);
                         resp.send_ok()
                     },
                     server::Command::StopVideo => {
+                        active_view = ActiveView::Off;
                         video.stop();
                         resp.send_ok()
                     },
@@ -92,12 +132,5 @@ fn main() {
         }
     }
 
-/*
-    let mut shadertoy = ShaderToy::new(&display, FRAGMENT_SHADER);
-
-    loop {
-        shadertoy.step(&display);
-    }
-    */
     let _ = server_thread.join().unwrap();
 }

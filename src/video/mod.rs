@@ -1,11 +1,7 @@
-use glium;
-use glium::Surface;
-use glium::index::PrimitiveType;
 use glium::backend::glutin_backend::WinRef;
 use mpv;
 use std::os::raw::{c_void,c_char};
 use std::ffi::CStr;
-use log;
 
 pub struct Video {
     player: Box<mpv::MpvHandlerWithGl>,

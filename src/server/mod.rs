@@ -4,12 +4,19 @@ use self::connection::Connection;
 use std::thread;
 use std::sync::mpsc::{channel, Receiver};
 
+pub struct ShaderData {
+    pub title: String,
+    pub description: String,
+    pub source: String,
+}
+
 pub enum Command {
-    List,
-    Read(String),
-    Write(String, String),
-    Create(String),
-    Activate(String),
+    ListShaders,
+    ReadShader(String),
+    WriteShader(String, ShaderData),
+    CreateShader(ShaderData),
+    RemoveShader(String),
+    ActivateShader(String),
     PlayVideo(String),
     StopVideo,
 }
