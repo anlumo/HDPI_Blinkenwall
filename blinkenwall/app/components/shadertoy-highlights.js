@@ -20,7 +20,6 @@ export default Ember.Component.extend({
     this.get('store').findAll('shader').then((shaders) => {
       let list = shaders.toArray();
       this.shuffle(list);
-      console.log('list = ', list);
       this.set('highlights', list.slice(0, this.get('count')));
     });
   }
