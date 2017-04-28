@@ -11,6 +11,7 @@ Router.map(function() {
     this.route('edit', {
       path: '/edit/:id'
     });
+    this.route('all');
   });
   this.route('youtube');
   this.route('emulator');
