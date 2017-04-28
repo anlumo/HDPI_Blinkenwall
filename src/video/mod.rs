@@ -20,6 +20,7 @@ impl Video {
         let mut ptr = Box::new(win);
         let mut mpv_builder = mpv::MpvHandlerBuilder::new().expect("Error while creating MPV builder");
         mpv_builder.set_option("ytdl", "yes").unwrap();
+        mpv_builder.set_option("ytdl-format", "worst").unwrap();
         mpv_builder.try_hardware_decoding().unwrap();
         Video {
             player: mpv_builder.build_with_gl(Some(get_proc_address), &mut ptr as *mut _ as *mut c_void).expect("Error while initializing MPV with opengl"),
