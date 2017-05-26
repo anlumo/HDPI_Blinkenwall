@@ -8,7 +8,7 @@ const FRAMES: usize = 512;
 pub struct AudioInput {
     portaudio: pa::PortAudio,
     stream: pa::Stream<pa::NonBlocking, pa::stream::Input<f32>>,
-    ringbuffer: Arc<AtomicRingBuffer<[f32; FRAMES*2], [[f32; FRAMES*2]; 5]>>, // FRAMES*2 due to having two channels!
+    ringbuffer: Arc<AtomicRingBuffer<[f32; FRAMES], [[f32; FRAMES]; 5]>>,
 }
 
 impl<'a> AudioInput {
@@ -17,9 +17,9 @@ impl<'a> AudioInput {
 
         let input_device = portaudio.default_input_device().unwrap();
         let latency = portaudio.device_info(input_device).unwrap().default_low_input_latency;
-        let input_params = pa::StreamParameters::<f32>::new(input_device, 2, true, latency);
+        let input_params = pa::StreamParameters::<f32>::new(input_device, 1, true, latency);
         let settings = pa::stream::InputSettings::new(input_params, 44100.0, FRAMES as u32);
-        let buffer = [[0.0; FRAMES*2]; 5];
+        let buffer = [[0.0; FRAMES]; 5];
 
         let ringbuffer = Arc::new(AtomicRingBuffer::new(buffer));
 
@@ -49,7 +49,7 @@ impl<'a> AudioInput {
         self.stream.stop()
     }
 
-    pub fn poll(&mut self) -> Result<[f32; FRAMES*2], ()> {
+    pub fn poll(&mut self) -> Result<[f32; FRAMES], ()> {
         let mut result = try!(self.ringbuffer.dequeue_spin(|x| *x));
         loop {
             match self.ringbuffer.dequeue_spin(|x| *x) {

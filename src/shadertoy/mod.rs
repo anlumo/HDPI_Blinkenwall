@@ -2,10 +2,15 @@ use glium;
 use glium::Surface;
 use glium::index::PrimitiveType;
 use glium::backend::glutin_backend::GlutinFacade;
+use glium::texture::texture2d::Texture2d;
+use glium::texture::{RawImage2d, ClientFormat, MipmapsOption, UncompressedFloatFormat};
 use std::time::Instant;
 use chrono::prelude::UTC;
 use chrono::datetime::DateTime;
 use chrono::{Datelike, Timelike};
+use std::borrow::Cow;
+
+mod audio;
 
 const VERTEX_SHADER: &'static str = "#version 140
 
@@ -30,6 +35,7 @@ uniform vec3 iResolution;
 uniform vec4 iMouse;
 uniform vec4 iDate;
 uniform int iFrame;
+uniform sampler2D iChannel0;
 
 void mainImage(out vec4, in vec2);
 
@@ -45,16 +51,22 @@ struct Vertex {
     texcoords: [f32; 2],
 }
 
+struct Audio {
+    input: audio::AudioInput,
+    texture: Texture2d,
+}
+
 pub struct ShaderToy {
     startup_time: Instant,
     frame: i32,
     vertex_buffer: glium::VertexBuffer<Vertex>,
     index_buffer: glium::IndexBuffer<u16>,
     program: glium::Program,
+    audio: Option<Audio>,
 }
 
 impl ShaderToy {
-    pub fn new(display: &GlutinFacade, shader: &str) -> ShaderToy {
+    fn new_internal(display: &GlutinFacade, shader: &str, audio: Option<Audio>) -> ShaderToy {
         implement_vertex!(Vertex, position, texcoords);
 
         let vertex_buffer = glium::VertexBuffer::new(display, &[
@@ -74,7 +86,30 @@ impl ShaderToy {
             vertex_buffer: vertex_buffer,
             index_buffer: index_buffer,
             program: program,
+            audio: audio,
         }
+    }
+
+    pub fn new(display: &GlutinFacade, shader: &str) -> ShaderToy {
+        Self::new_internal(display, shader, None)
+    }
+
+    pub fn new_with_audio(display: &GlutinFacade, shader: &str) -> ShaderToy {
+        let mut audio = audio::AudioInput::new();
+        let data = [0.0; 1024];
+        let rawimage = RawImage2d {
+            data: Cow::from(&data[..]),
+            width: 512,
+            height: 2,
+            format: ClientFormat::F32,
+        };
+        let texture = Texture2d::with_format(display, rawimage, UncompressedFloatFormat::F32, MipmapsOption::NoMipmap).unwrap();
+
+        audio.start();
+        Self::new_internal(display, shader, Some(Audio {
+            input: audio,
+            texture: texture,
+        }))
     }
 
     pub fn step(&mut self, display: &GlutinFacade) {
@@ -90,7 +125,32 @@ impl ShaderToy {
         };
         let mut target = display.draw();
         target.clear_color_and_depth((0.0, 0.0, 0.0, 0.0), 1.0);
-        target.draw(&self.vertex_buffer, &self.index_buffer, &self.program, &uniforms, &Default::default()).unwrap();
+
+        if let Some(ref mut audio) = self.audio {
+            if let Ok(buffer) = audio.input.poll() {
+                let mut texels = [0.; 1024];
+                // time domain
+                for (index, sample) in buffer.iter().enumerate() {
+                    texels[index] = sample * 0.5 + 0.5;
+                }
+                // frequency domain
+                for index in 512..1024 {
+                    texels[index] = 0.;
+                }
+                let rawimage = RawImage2d {
+                    data: Cow::from(&texels[..]),
+                    width: 512,
+                    height: 2,
+                    format: ClientFormat::F32,
+                };
+                audio.texture.write(glium::Rect {left: 0, bottom: 0, width: 512, height: 2}, rawimage);
+            }
+            let uniforms = uniforms.add("iChannel0", &audio.texture);
+            target.draw(&self.vertex_buffer, &self.index_buffer, &self.program, &uniforms, &Default::default()).unwrap();
+        } else {
+            target.draw(&self.vertex_buffer, &self.index_buffer, &self.program, &uniforms, &Default::default()).unwrap();
+        }
+
         target.finish().unwrap();
         self.frame += 1;
     }
