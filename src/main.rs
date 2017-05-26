@@ -26,6 +26,9 @@ use video::Video;
 use std::sync::mpsc;
 use std::process;
 
+extern crate portaudio;
+extern crate atomic_ring_buffer;
+
 mod config;
 
 // https://www.shadertoy.com/view/XssczX
@@ -111,7 +114,7 @@ fn main() {
                                 }
 
                                 active_view = ActiveView::ShaderToy;
-                                shadertoy = Some(ShaderToy::new(&display, &shader.source));
+                                shadertoy = Some(ShaderToy::new_with_audio(&display, &shader.source));
                                 resp.send_ok()
                             },
                             Err(error) => {
