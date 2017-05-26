@@ -18,3 +18,4 @@ git2 = "0.6"
 uuid = { version = "0.5", features = ["v4"] }
 portaudio = "0.7"
 atomic_ring_buffer = "1.0"
+rustfft = "2.0"

@@ -31,6 +31,7 @@ use std::process;
 
 extern crate portaudio;
 extern crate atomic_ring_buffer;
+extern crate rustfft;
 
 mod config;
 

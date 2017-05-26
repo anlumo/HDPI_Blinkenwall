@@ -3,7 +3,7 @@ use std::thread;
 use atomic_ring_buffer::AtomicRingBuffer;
 use std::sync::Arc;
 
-const FRAMES: usize = 512;
+const FRAMES: usize = 1024;
 
 pub struct AudioInput {
     portaudio: pa::PortAudio,

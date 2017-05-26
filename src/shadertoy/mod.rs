@@ -11,6 +11,7 @@ use chrono::{Datelike, Timelike};
 use std::borrow::Cow;
 
 mod audio;
+mod audio_fft;
 
 const VERTEX_SHADER: &'static str = "#version 140
 
@@ -54,6 +55,7 @@ struct Vertex {
 struct Audio {
     input: audio::AudioInput,
     texture: Texture2d,
+    fft: audio_fft::AudioFFT,
 }
 
 pub struct ShaderToy {
@@ -109,6 +111,7 @@ impl ShaderToy {
         Self::new_internal(display, shader, Some(Audio {
             input: audio,
             texture: texture,
+            fft: audio_fft::AudioFFT::new(1024),
         }))
     }
 
@@ -130,12 +133,13 @@ impl ShaderToy {
             if let Ok(buffer) = audio.input.poll() {
                 let mut texels = [0.; 1024];
                 // time domain
-                for (index, sample) in buffer.iter().enumerate() {
-                    texels[index] = sample * 0.5 + 0.5;
+                for index in 0..512 {
+                    texels[index + 512] = buffer[index*2] * 0.5 + 0.5;
                 }
                 // frequency domain
-                for index in 512..1024 {
-                    texels[index] = 0.;
+                let fft = audio.fft.process(&buffer.to_vec());
+                for (index, sample) in fft[0..512].iter().enumerate() {
+                    texels[index] = *sample;
                 }
                 let rawimage = RawImage2d {
                     data: Cow::from(&texels[..]),
