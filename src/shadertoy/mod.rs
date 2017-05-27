@@ -138,7 +138,7 @@ impl ShaderToy {
                 }
                 // frequency domain
                 let fft = audio.fft.process(&buffer.to_vec());
-                for (index, sample) in fft[0..512].iter().enumerate() {
+                for (index, sample) in fft.iter().enumerate() {
                     texels[index] = *sample;
                 }
                 let rawimage = RawImage2d {
