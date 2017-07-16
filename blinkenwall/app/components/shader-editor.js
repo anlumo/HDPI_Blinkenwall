@@ -15,6 +15,7 @@ export default Ember.Component.extend({
   actions: {
     valueUpdated(newValue) {
       this.set('editorSource', newValue);
+      this.get('shader').set('source', this.get('editorSource'));
     },
     compile() {
       this.get('shader').set('source', this.get('editorSource'));
