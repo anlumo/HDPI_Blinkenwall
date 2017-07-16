@@ -19,7 +19,7 @@ export default Ember.Controller.extend({
     activate() {
       this.get('serverConnection').send({
         cmd: "shader activate",
-        key: this.get('model.id')
+        id: this.get('model.id')
       });
     }
   }
