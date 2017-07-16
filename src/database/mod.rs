@@ -79,6 +79,14 @@ impl Database {
     }
 
     pub fn add(&mut self, data: &ShaderData, message: &str) -> Result<String, Error> {
+        let uuid = format!("{}", uuid::Uuid::new_v4().hyphenated());
+        match self.update(&uuid, &data, &message) {
+            Ok(_) => Ok(uuid),
+            Err(error) => Err(error)
+        }
+    }
+
+    pub fn update(&mut self, name: &str, data: &ShaderData, message: &str) -> Result<(), Error> {
         // TODO: lock repository
         let masterobj = self.repository.revparse_single("master")?;
         let master = masterobj.as_commit().unwrap();
@@ -95,14 +103,12 @@ impl Database {
 
         let mut treebuilder = self.repository.treebuilder(Some(&master.tree().unwrap()))?;
 
-        let uuid = uuid::Uuid::new_v4();
-        let hyphenated = format!("{}", uuid.hyphenated());
-        let metaname = format!("{}.meta", uuid.hyphenated());
+        let metaname = format!("{}.meta", name);
 
-        treebuilder.insert(&hyphenated, source_oid, 0o100644).unwrap();
+        treebuilder.insert(&name, source_oid, 0o100644).unwrap();
         treebuilder.insert(&metaname, meta_oid, 0o100644).unwrap();
         self.commit_treebuilder(&master, &treebuilder, &message)?;
-        Ok(hyphenated)
+        Ok(())
     }
 
     pub fn remove(&mut self, name: &str, message: &str) -> Result<String, Error> {

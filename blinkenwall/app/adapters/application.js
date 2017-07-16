@@ -12,8 +12,8 @@ export default DS.Adapter.extend({
           this.get('serverConnection').send(jQuery.extend({
             cmd: "shader create",
           }, data), (response) => {
-            if(response.key) {
-              data.id = response.key;
+            if(response.id) {
+              data.id = response.id;
               Ember.run(null, resolve, data);
             } else {
               Ember.run(null, reject, data);
@@ -49,8 +49,8 @@ export default DS.Adapter.extend({
       this.get('serverConnection').send({
         cmd: "shader list"
       }, (response) => {
-        if(response.keys) {
-          Ember.run(null, resolve, response.keys.map((key) => { return {id: key, type: "shader", content: key}; }));
+        if(response.ids) {
+          Ember.run(null, resolve, response.ids.map((id) => { return {id: id, type: "shader", content: id}; }));
         } else {
           Ember.run(null, reject, response);
         }
@@ -71,7 +71,7 @@ export default DS.Adapter.extend({
         return new Ember.RSVP.Promise((resolve, reject) => {
           this.get('serverConnection').send({
             cmd: "shader read",
-            key: id
+            id: id
           }, (response) => {
             if(response.source) {
               Ember.run(null, resolve, {
@@ -96,9 +96,31 @@ export default DS.Adapter.extend({
   },
 
   updateRecord(store, type, snapshot) { // jshint unused:false
-    // not implemented yet on the server!
-    return new Ember.RSVP.Promise((resolve, reject) => {
-      Ember.run(null, reject, "Not implemented yet");
-    });
+    var data = this.serialize(snapshot, {includeId: true});
+    switch(type.modelName) {
+      case "shader-content":
+        return new Ember.RSVP.Promise((resolve, reject) => {
+          this.get('serverConnection').send(jQuery.extend({
+            cmd: "shader write"
+          }, data), (response) => {
+            if(response.id) {
+              Ember.run(null, resolve, data);
+            } else {
+              Ember.run(null, reject, data);
+            }
+          });
+        });
+      case "shader":
+        return new Ember.RSVP.Promise((resolve, reject) => {
+          if(data.content) {
+            Ember.run(null, resolve, {
+              id: data.content,
+              content: data.content
+            });
+          } else {
+            Ember.run(null, reject, "Cannot create a shader without content");
+          }
+        });
+    }
   },
 });

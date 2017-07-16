@@ -17,7 +17,7 @@ export default Ember.Service.extend({
     if(cb) {
       this.callbacks[index] = cb;
     }
-    let msg = Ember.$.extend({ id: index }, message);
+    let msg = Ember.$.extend({ req: index }, message);
     let ws = this.get('ws');
     if(ws && ws.readyState === 1) {
       console.log("Sending websocket message", msg);
@@ -40,12 +40,12 @@ export default Ember.Service.extend({
   onMessage(event) {
     let msg = JSON.parse(event.data);
     console.log("Received websocket message", msg);
-    let id = msg.id;
-    if(id) {
-      let cb = this.callbacks[id];
+    let req = msg.req;
+    if(req) {
+      let cb = this.callbacks[req];
       if(cb) {
         cb(msg);
-        delete this.callbacks[id];
+        delete this.callbacks[req];
       }
     }
   },
