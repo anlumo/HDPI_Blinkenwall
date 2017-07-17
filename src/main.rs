@@ -97,18 +97,18 @@ fn main() {
                             Ok(shader) => resp.send_shader(&shader),
                             Err(error) => resp.send_error(400, &format!("{}", error))
                         },
-                    server::Command::WriteShader(id, shader) =>
-                        match database.update(&id, &shader, &format!("Update shader for {}", resp.address())) {
-                            Ok(()) => resp.send_id(&id),
+                    server::Command::WriteShader(id, shader, commit) =>
+                        match database.update(&id, &shader, &commit, &format!("Update shader for {}", resp.address())) {
+                            Ok(commit) => resp.send_commit(&id, &commit),
                             Err(error) => resp.send_error(400, &format!("{}", error))
                         },
                     server::Command::CreateShader(shader) =>
                         match database.add(&shader, &format!("Add shader for {}", resp.address())) {
-                            Ok(id) => resp.send_id(&id),
+                            Ok((id, commit)) => resp.send_commit(&id, &commit),
                             Err(error) => resp.send_error(400, &format!("{}", error))
                         },
                     server::Command::RemoveShader(id) =>
-                        match database.remove(&id, &format!("Remove shader for {}", resp.address())) {
+                        match database.remove(&id) {
                             Ok(_) => resp.send_ok(),
                             Err(error) => resp.send_error(400, &format!("{}", error))
                         },

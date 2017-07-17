@@ -1,4 +1,4 @@
-use git2::{Repository, ObjectType, Commit, Signature, TreeBuilder, Error};
+use git2::{Repository, ObjectType, Commit, Signature, TreeBuilder, Error, Branch, BranchType, Oid};
 use uuid;
 use server::ShaderData;
 use serde_json;
@@ -6,6 +6,8 @@ use serde_json;
 pub struct Database {
     repository: Repository
 }
+
+const BRANCH_PREFIX: &str = "shader-";
 
 impl Database {
     pub fn new(path: &str) -> Database {
@@ -17,26 +19,37 @@ impl Database {
     }
 
     pub fn list(&self) -> Result<Vec<String>, Error> {
-        let obj = self.repository.revparse_single("master")?;
-
-        let tree = obj.as_commit().unwrap().tree()?;
-        Ok(tree.iter().map(|entry| {
-            tree.get_id(entry.id()).unwrap().name().unwrap().to_string()
-        }).filter(|entry| { !entry.ends_with(".meta") }).collect())
+        match self.repository.branches(Some(BranchType::Local)) {
+            Err(error) => Err(error),
+            Ok(branches) => Ok(branches.filter(|opt| match opt {
+                &Ok((ref branch, _)) => match branch.name() {
+                    Ok(optname) => match optname {
+                        Some(name) => name.starts_with(BRANCH_PREFIX),
+                        None => false
+                    },
+                    Err(_) => false
+                },
+                &Err(_) => false
+            }).map(|r| {
+                String::from(r.unwrap().0.name().unwrap().unwrap().split_at(BRANCH_PREFIX.len()).1)
+            }).collect())
+        }
     }
 
     pub fn read(&self, name: &str) -> Result<ShaderData, Error> {
-        let tree = self.repository.revparse_single("master")?.as_commit().unwrap().tree()?;
-        let entry = tree.get_name(name);
+        let branchobj = self.repository.revparse_single(&vec![BRANCH_PREFIX, name].join(""))?;
+        let branch = branchobj.as_commit().unwrap();
+        let tree = self.repository.find_object(branch.id(), Some(ObjectType::Commit))?.as_commit().unwrap().tree()?;
+        let entry = tree.get_name("shader.txt");
         match entry {
-            None => Err(Error::from_str("not found")),
+            None => Err(Error::from_str("internal error")),
             Some(entry) => {
                 let obj = entry.to_object(&self.repository)?;
                 let file = obj.as_blob().unwrap();
                 match String::from_utf8(Vec::from(file.content())) {
                     Ok(source) => {
-                        match tree.get_name(&format!("{}.meta", name)) {
-                            None => Err(Error::from_str("not found")),
+                        match tree.get_name("metadata.json") {
+                            None => Err(Error::from_str("internal error")),
                             Some(meta) => {
                                 match serde_json::from_str(&String::from_utf8(Vec::from(meta.to_object(&self.repository)?.as_blob().unwrap().content())).unwrap()) {
                                     Ok(obj) => {
@@ -46,6 +59,7 @@ impl Database {
                                                 title: title.clone(),
                                                 description: description.clone(),
                                                 source: source,
+                                                commit: format!("{}", branch.id()),
                                             })
                                         } else {
                                             Err(Error::from_str("invalid format"))
@@ -62,34 +76,19 @@ impl Database {
         }
     }
 
-    fn commit_treebuilder(&self, parent: &Commit, treebuilder: &TreeBuilder, message: &str) -> Result<String, Error> {
+    fn commit_treebuilder(&self, parent: Option<&Commit>, treebuilder: &TreeBuilder, message: &str) -> Result<Oid, Error> {
         let treeoid = treebuilder.write().unwrap();
         let treeobj = self.repository.find_object(treeoid, Some(ObjectType::Tree)).unwrap();
         let tree = treeobj.as_tree().unwrap();
 
         let signature = Signature::now("Blinkenwall", "blinkenwall@monitzer.com").unwrap();
-        match self.repository.commit(Some("HEAD"), &signature, &signature,
-            message, &tree, &[&parent]) {
-            Ok(oid) => {
-                info!("Commit {} for {}", oid, message);
-                Ok(format!("{}", oid))
-            },
-            Err(error) => Err(error)
+        match parent {
+            Some(parent) => self.repository.commit(None, &signature, &signature, message, &tree, &[&parent]),
+            None => self.repository.commit(None, &signature, &signature, message, &tree, &[])
         }
     }
 
-    pub fn add(&mut self, data: &ShaderData, message: &str) -> Result<String, Error> {
-        let uuid = format!("{}", uuid::Uuid::new_v4().hyphenated());
-        match self.update(&uuid, &data, &message) {
-            Ok(_) => Ok(uuid),
-            Err(error) => Err(error)
-        }
-    }
-
-    pub fn update(&mut self, name: &str, data: &ShaderData, message: &str) -> Result<(), Error> {
-        // TODO: lock repository
-        let masterobj = self.repository.revparse_single("master")?;
-        let master = masterobj.as_commit().unwrap();
+    fn create_commit(&self, branch: Option<&Commit>, data: &ShaderData, message: &str) -> Result<Oid, Error> {
         let source_bytes = data.source.as_bytes();
         let source_oid = self.repository.blob(source_bytes)?;
         let metadata = json!({
@@ -101,24 +100,39 @@ impl Database {
         meta_bytes.clone_from_slice(&meta_vec);
         let meta_oid = self.repository.blob(&meta_bytes)?;
 
-        let mut treebuilder = self.repository.treebuilder(Some(&master.tree().unwrap()))?;
+        let mut treebuilder = match branch {
+            Some(&ref branch) => self.repository.treebuilder(Some(&branch.tree().unwrap())),
+            None => self.repository.treebuilder(None)
+        }?;
 
-        let metaname = format!("{}.meta", name);
-
-        treebuilder.insert(&name, source_oid, 0o100644).unwrap();
-        treebuilder.insert(&metaname, meta_oid, 0o100644).unwrap();
-        self.commit_treebuilder(&master, &treebuilder, &message)?;
-        Ok(())
+        treebuilder.insert("shader.txt", source_oid, 0o100644).unwrap();
+        treebuilder.insert("metadata.json", meta_oid, 0o100644).unwrap();
+        self.commit_treebuilder(branch, &treebuilder, &message)
     }
 
-    pub fn remove(&mut self, name: &str, message: &str) -> Result<String, Error> {
-        let masterobj = self.repository.revparse_single("master")?;
-        let master = masterobj.as_commit().unwrap();
-        let master_tree = master.tree()?;
+    pub fn add(&self, data: &ShaderData, message: &str) -> Result<(String, String), Error> {
+        let uuid = format!("{}", uuid::Uuid::new_v4().hyphenated());
 
-        let mut treebuilder = self.repository.treebuilder(Some(&master_tree))?;
-        treebuilder.remove(name)?;
-        treebuilder.remove(format!("{}.meta", name))?;
-        self.commit_treebuilder(&master, &treebuilder, &message)
+        let commit_oid = self.create_commit(None, &data, &message)?;
+        let commit = self.repository.find_commit(commit_oid)?;
+        self.repository.branch(&vec![BRANCH_PREFIX, &uuid].join(""), &commit, true)?;
+        Ok((uuid, format!("{}", commit_oid)))
+    }
+
+    pub fn update(&self, name: &str, data: &ShaderData, revision: &str, message: &str) -> Result<String, Error> {
+        let branchobj = self.repository.revparse_single(&vec![BRANCH_PREFIX, name].join(""))?;
+        let branch = branchobj.as_commit().unwrap();
+        if branch.id() != Oid::from_str(revision)? {
+            return Err(Error::from_str("Shader was modified concurrently."));
+        }
+
+        let commit_oid = self.create_commit(Some(branch), &data, &message)?;
+        Ok(format!("{}", commit_oid))
+    }
+
+    pub fn remove(&self, name: &str) -> Result<(), Error> {
+        let mut branch = self.repository.find_branch(&vec![BRANCH_PREFIX, name].join(""), BranchType::Local)?;
+        branch.delete();
+        Ok(())
     }
 }

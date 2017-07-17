@@ -8,12 +8,13 @@ pub struct ShaderData {
     pub title: String,
     pub description: String,
     pub source: String,
+    pub commit: String,
 }
 
 pub enum Command {
     ListShaders,
     ReadShader(String),
-    WriteShader(String, ShaderData),
+    WriteShader(String, ShaderData, String),
     CreateShader(ShaderData),
     RemoveShader(String),
     ActivateShader(String),

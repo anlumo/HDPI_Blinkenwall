@@ -14,6 +14,7 @@ export default DS.Adapter.extend({
           }, data), (response) => {
             if(response.id) {
               data.id = response.id;
+              data.commit = response.commit;
               Ember.run(null, resolve, data);
             } else {
               Ember.run(null, reject, data);
@@ -35,7 +36,6 @@ export default DS.Adapter.extend({
   },
 
   deleteRecord(store /*jshint unused:false*/, type /*jshint unused:false*/, snapshot) {
-    // not implemented yet on the server!
     return new Ember.RSVP.Promise((resolve, reject) => {
       Ember.run(null, reject, "Not implemented yet: " + snapshot);
     });
@@ -78,7 +78,8 @@ export default DS.Adapter.extend({
                 id: id,
                 title: response.title,
                 description: response.description,
-                source: response.source
+                source: response.source,
+                commit: response.commit,
               });
             } else {
               Ember.run(null, reject, response);

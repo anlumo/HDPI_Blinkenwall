@@ -33,6 +33,7 @@ impl Connection {
                 title: title.to_string(),
                 description: description.to_string(),
                 source: source.to_string(),
+                commit: "".to_string(),
             })
         } else {
             Err(Error::new(ErrorKind::Internal, "Invalid shader format"))
@@ -65,17 +66,17 @@ impl Handler for Connection {
                             if let serde_json::Value::String(ref key) = obj["id"] {
                                 self.channel.send((Command::ReadShader(key.clone()), resp)).unwrap();
                             } else {
-                                error!("[{}] read message has invalid key, ignored.", self.address);
+                                error!("[{}] read message has invalid id, ignored.", self.address);
                             }
                         },
                         "shader write" => {
-                            if let serde_json::Value::String(ref key) = obj["id"] {
+                            if let (&serde_json::Value::String(ref key), &serde_json::Value::String(ref commit)) = (&obj["id"], &obj["commit"]) {
                                 match Connection::parse_shaderdata(&obj) {
-                                    Ok(data) => self.channel.send((Command::WriteShader(key.clone(), data), resp)).unwrap(),
+                                    Ok(data) => self.channel.send((Command::WriteShader(key.clone(), data, commit.to_string()), resp)).unwrap(),
                                     Err(error) => resp.send_error(400, &error.details).unwrap()
                                 }
                             } else {
-                                resp.send_error(400, "Message has invalid key, ignored.").unwrap();
+                                resp.send_error(400, "Message has invalid id or commit, ignored.").unwrap();
                             }
                         },
                         "shader create" => {
@@ -88,14 +89,14 @@ impl Handler for Connection {
                             if let serde_json::Value::String(ref key) = obj["id"] {
                                 self.channel.send((Command::RemoveShader(key.clone()), resp)).unwrap();
                             } else {
-                                resp.send_error(400, "Message has invalid key, ignored.").unwrap();
+                                resp.send_error(400, "Message has invalid id, ignored.").unwrap();
                             }
                         }
                         "shader activate" => {
                             if let serde_json::Value::String(ref key) = obj["id"] {
                                 self.channel.send((Command::ActivateShader(key.clone()), resp)).unwrap();
                             } else {
-                                resp.send_error(400, "Message has invalid key, ignored.").unwrap();
+                                resp.send_error(400, "Message has invalid id, ignored.").unwrap();
                             }
                         },
                         "video play" => {
@@ -152,6 +153,7 @@ impl ResponseHandler {
             "title": shader.title,
             "description": shader.description,
             "source": shader.source,
+            "commit": shader.commit,
         }).to_string())
     }
 
@@ -159,14 +161,23 @@ impl ResponseHandler {
         info!("[{}] Sending id", self.address);
         self.out.send(json!({
             "req": self.req,
-            "key": id,
+            "id": id,
+        }).to_string())
+    }
+
+    pub fn send_commit(&self, id: &str, commit: &str) -> Result<()> {
+        info!("[{}] Sending commit", self.address);
+        self.out.send(json!({
+            "req": self.req,
+            "id": id,
+            "commit": commit,
         }).to_string())
     }
 
     pub fn send_ok(&self) -> Result<()> {
         info!("[{}] Sending ok", self.address);
         self.out.send(json!({
-            "id": self.req,
+            "req": self.req,
             "status": "ok",
         }).to_string())
     }
@@ -174,7 +185,7 @@ impl ResponseHandler {
     pub fn send_error(&self, code: u16, message: &str) -> Result<()> {
         error!("[{}] Sending error {}: {}", self.address, code, message);
         self.out.send(json!({
-            "id": self.req,
+            "req": self.req,
             "status": "error",
             "code": code,
             "message": message,
