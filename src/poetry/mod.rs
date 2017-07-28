@@ -74,21 +74,5 @@ impl Poetry {
                 self.incoming.swap_remove(i);
             }
         }
-
-        // let mut closed_connections = HashSet::new();
-        //
-        // for conn in &mut self.incoming {
-        //     let &mut (ref mut stream, ref mut buffer) = conn;
-        //     let mut readbuffer = [0_u8; 1024];
-        //     while let Ok(count) = stream.read(&mut readbuffer) {
-        //         if count == 0 {
-        //             closed_connections.insert(&stream);
-        //             break;
-        //         }
-        //         buffer.append(&mut readbuffer[0..count].to_vec());
-        //     }
-        // }
-        //
-        // self.incoming.retain(|conn| { !closed_connections.contains(&conn.0) });
     }
 }
