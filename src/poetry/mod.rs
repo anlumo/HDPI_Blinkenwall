@@ -60,11 +60,18 @@ impl Poetry {
                             buffer.append(&mut readbuffer[0..count].to_vec());
                         },
                         Err(err) => {
-                            if err.kind() != ErrorKind::WouldBlock {
-                                error!("Poetry connection to {} got error {}.", stream.peer_addr().unwrap(), err);
-                                drop_connection = true;
+                            match err.kind() {
+                                ErrorKind::Interrupted => {
+                                    continue;
+                                },
+                                ErrorKind::WouldBlock => {
+                                    break;
+                                },
+                                _ => {
+                                    error!("Poetry connection to {} got error {}.", stream.peer_addr().unwrap(), err);
+                                    drop_connection = true;
+                                },
                             }
-                            break;
                         }
                     }
                 }
