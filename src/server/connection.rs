@@ -109,6 +109,9 @@ impl Handler for Connection {
                         "video stop" => {
                             self.channel.send((Command::StopVideo, resp)).unwrap();
                         },
+                        "show poetry" => {
+                            self.channel.send((Command::ShowPoetry, resp)).unwrap();
+                        },
                         _ => resp.send_error(404, "Unknown command").unwrap(),
                     }
                 } else {

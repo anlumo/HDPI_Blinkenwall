@@ -22,10 +22,19 @@ pub struct Display {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct Poetry {
+    pub address: String,
+    pub port: u16,
+    pub font: String,
+    pub speed: u32,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Config {
     pub database: Database,
     pub server: Server,
     pub display: Display,
+    pub poetry: Poetry,
 }
 
 impl Config {

@@ -19,3 +19,4 @@ uuid = { version = "0.5", features = ["v4"] }
 portaudio = "0.7"
 atomic_ring_buffer = "1.0"
 rustfft = "2.0"
+bdf = "0.5"

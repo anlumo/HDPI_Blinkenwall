@@ -20,6 +20,7 @@ pub enum Command {
     ActivateShader(String),
     PlayVideo(String),
     StopVideo,
+    ShowPoetry,
 }
 
 pub fn open_server(ip: &str, port: u16) -> (thread::JoinHandle<ws::Result<()>>, Receiver<(Command, connection::ResponseHandler)>) {

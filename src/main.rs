@@ -32,6 +32,10 @@ use std::process;
 extern crate portaudio;
 extern crate atomic_ring_buffer;
 extern crate rustfft;
+extern crate bdf;
+
+mod poetry;
+use poetry::Poetry;
 
 mod config;
 
@@ -43,7 +47,8 @@ enum ActiveView {
     ShaderToy,
     Video,
     Emulator,
-    VNC
+    VNC,
+    Poetry,
 }
 
 fn main() {
@@ -68,8 +73,11 @@ fn main() {
     let (server_thread, command_receiver) = server::open_server(&config.server.address, config.server.port);
     let mut video = Video::new(&window);
     let mut shadertoy : Option<ShaderToy> = None;
+    let mut poetry : Option<Poetry> = None;
 
-    let mut active_view = ActiveView::Off;
+    //let mut active_view = ActiveView::Off;
+    let mut active_view = ActiveView::Poetry;
+    poetry = Some(Poetry::new(&display, &config.poetry.address, config.poetry.port, &config.poetry.font, config.poetry.speed));
 
     loop {
         match active_view {
@@ -86,6 +94,11 @@ fn main() {
                 },
             ActiveView::Emulator => {},
             ActiveView::VNC => {},
+            ActiveView::Poetry => {
+                if let Some(ref mut p) = poetry {
+                    p.step();
+                }
+            },
         }
         match command_receiver.try_recv() {
             Ok(message) => {
@@ -118,6 +131,9 @@ fn main() {
                             Ok(shader) => {
                                 match active_view {
                                     ActiveView::Video => video.stop(),
+                                    ActiveView::Poetry => {
+                                        poetry = None;
+                                    },
                                     _ => {}
                                 }
 
@@ -133,7 +149,15 @@ fn main() {
                     server::Command::PlayVideo(url) => {
                         active_view = ActiveView::Video;
                         video.play(&url);
-                        shadertoy = None;
+                        match active_view {
+                            ActiveView::Poetry => {
+                                poetry = None;
+                            },
+                            ActiveView::ShaderToy => {
+                                shadertoy = None;
+                            },
+                            _ => {}
+                        }
                         resp.send_ok()
                     },
                     server::Command::StopVideo => {
@@ -146,6 +170,25 @@ fn main() {
                         }
                         resp.send_ok()
                     },
+                    server::Command::ShowPoetry => {
+                        match active_view {
+                            ActiveView::Video => {
+                                active_view = ActiveView::Off;
+                                video.stop();
+                            },
+                            ActiveView::ShaderToy => {
+                                shadertoy = None;
+                            },
+                            _ => {}
+                        }
+                        match poetry {
+                            None => {
+                                poetry = Some(Poetry::new(&display, &config.poetry.address, config.poetry.port, &config.poetry.font, config.poetry.speed));
+                            },
+                            _ => {}
+                        }
+                        resp.send_ok()
+                    }
                 }.unwrap();
             },
             Err(err) => match err {

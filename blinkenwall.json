@@ -10,5 +10,11 @@
   "display": {
     "width": 192,
     "height": 144
+  },
+  "poetry": {
+    "address": "127.0.0.1",
+    "port": 8266,
+    "font": "tom-thumb.bdf",
+    "speed": 10
   }
 }
