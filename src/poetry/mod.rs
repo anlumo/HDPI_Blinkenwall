@@ -136,9 +136,10 @@ impl Poetry {
         }
         // fade old poems
         for i in (0..self.poems.len()).rev() {
-            let alpha = 1.0 - self.poems[i].created.elapsed().as_secs() as f32 / self.speed;
+            let duration = self.poems[i].created.elapsed();
+            let alpha = 1.0 - (duration.as_secs() as f32 + duration.subsec_nanos() as f32 / 1e9) / self.speed;
             self.poems[i].color.alpha = alpha;
-            if (alpha * 255.0).round().abs() < f32::EPSILON {
+            if (alpha * 255.0).round() < f32::EPSILON {
                 self.poems.swap_remove(i);
             }
         }
