@@ -35,6 +35,7 @@ extern crate rustfft;
 extern crate bdf;
 extern crate palette;
 extern crate rand;
+extern crate unicode_normalization;
 
 mod poetry;
 use poetry::Poetry;

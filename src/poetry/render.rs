@@ -12,6 +12,7 @@ use bdf;
 use std::borrow::Cow;
 use rand::Rng;
 use std::{cmp,u8};
+use unicode_normalization::UnicodeNormalization;
 
 #[derive(Copy, Clone)]
 pub struct Vertex {
@@ -48,7 +49,8 @@ impl Poem {
         let glyphs = font.glyphs();
         let mut y = char_size.1 - 1_usize;
         for line in text.lines() {
-            for (pos, ch) in line.char_indices() {
+            let mut pos = 0;
+            for ch in line.nfc() {
                 if (pos + 1) * char_size.0 > pixel_w {
                     break;
                 }
@@ -59,6 +61,7 @@ impl Poem {
                             data[(bounds.x + (pos * char_size.0) as i32 + gx as i32 + (y as i32 - bounds.height as i32 - bounds.y + gy as i32) * pixel_w as i32) as usize] = u8::MAX;
                         }
                     }
+                    pos += 1;
                 }
             }
 
