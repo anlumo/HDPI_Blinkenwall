@@ -32,8 +32,10 @@ in vec2 texcoords;
 
 out vec2 vTexCoords;
 
+uniform vec4 bounds;
+
 void main() {
-    gl_Position = vec4(position, 0.0, 1.0);
+    gl_Position = vec4((position * bounds.zw + bounds.xy) * 2.0 - 1.0, 0.0, 1.0);
     vTexCoords = texcoords;
 }
 ";
@@ -47,7 +49,7 @@ uniform vec4 color;
 uniform sampler2D text;
 
 void main() {
-    fragColor = vec4(texture(text, vTexCoords), 1.0) * color;
+    fragColor = texture(text, vTexCoords).rrrr * color;
 }
 ";
 
@@ -56,10 +58,10 @@ impl Poetry {
         implement_vertex!(Vertex, position, texcoords);
 
         let vertex_buffer = glium::VertexBuffer::new(display, &[
-            Vertex { position: [-1.0, -1.0], texcoords: [ 0.0, 0.0 ] },
-            Vertex { position: [-1.0,  1.0], texcoords: [ 0.0, 1.0 ] },
-            Vertex { position: [ 1.0,  1.0], texcoords: [ 1.0, 1.0 ] },
-            Vertex { position: [ 1.0, -1.0], texcoords: [ 1.0, 0.0 ] },
+            Vertex { position: [0.0,  0.0], texcoords: [ 0.0, 0.0 ] },
+            Vertex { position: [0.0, -1.0], texcoords: [ 0.0, 1.0 ] },
+            Vertex { position: [1.0, -1.0], texcoords: [ 1.0, 1.0 ] },
+            Vertex { position: [1.0,  0.0], texcoords: [ 1.0, 0.0 ] },
             ]).unwrap();
         let index_buffer = glium::IndexBuffer::new(display, PrimitiveType::TrianglesList, &[0u16, 1, 2, 2, 3, 0]).unwrap();
 
