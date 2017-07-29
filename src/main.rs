@@ -33,6 +33,8 @@ extern crate portaudio;
 extern crate atomic_ring_buffer;
 extern crate rustfft;
 extern crate bdf;
+extern crate palette;
+extern crate rand;
 
 mod poetry;
 use poetry::Poetry;
@@ -96,7 +98,7 @@ fn main() {
             ActiveView::VNC => {},
             ActiveView::Poetry => {
                 if let Some(ref mut p) = poetry {
-                    p.step();
+                    p.step(&display);
                 }
             },
         }

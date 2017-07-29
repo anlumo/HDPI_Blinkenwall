@@ -26,7 +26,7 @@ pub struct Poetry {
     pub address: String,
     pub port: u16,
     pub font: String,
-    pub speed: u32,
+    pub speed: f32,
 }
 
 #[derive(Serialize, Deserialize)]
