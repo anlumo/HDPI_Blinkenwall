@@ -103,7 +103,6 @@ impl Poem {
     }
 
     fn render(&self, target: &mut Frame, size: &(u32,u32), vertex_buffer: &glium::VertexBuffer<Vertex>, index_buffer: &glium::IndexBuffer<u16>, program: &glium::Program) {
-        //info!("Render text at {}, {}, size={}, {}, alpha={}", self.x as f32 / size.0 as f32, self.y as f32 / size.1 as f32, self.width as f32 / size.0 as f32, self.height as f32 / size.1 as f32, self.color.alpha);
         let c = &self.color;
         let uniforms = uniform! {
             color: [c.red, c.green, c.blue, c.alpha],
