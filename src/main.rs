@@ -208,7 +208,7 @@ fn main() {
                         }
                         active_view = ActiveView::Tox;
                         let output = Command::new("/usr/bin/sudo")
-                                        .arg("-Hu")
+                                        .arg("-Hiu")
                                         .arg("zoff")
                                         .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh")
                                         .arg("start")
@@ -219,7 +219,7 @@ fn main() {
                     },
                     server::Command::StopTox => {
                         let output = Command::new("/usr/bin/sudo")
-                                        .arg("-Hu")
+                                        .arg("-Hiu")
                                         .arg("zoff")
                                         .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh")
                                         .arg("stop")
