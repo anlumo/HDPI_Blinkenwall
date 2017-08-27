@@ -17,6 +17,7 @@ Router.map(function() {
   this.route('emulator');
   this.route('vnc');
   this.route('retro');
+  this.route('tox');
 });
 
 export default Router;

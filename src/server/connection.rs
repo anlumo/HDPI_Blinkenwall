@@ -112,6 +112,12 @@ impl Handler for Connection {
                         "show poetry" => {
                             self.channel.send((Command::ShowPoetry, resp)).unwrap();
                         },
+                        "tox start" => {
+                            self.channel.send((Command::StartTox, resp)).unwrap();
+                        },
+                        "tox stop" => {
+                            self.channel.send((Command::StopTox, resp)).unwrap();
+                        },
                         _ => resp.send_error(404, "Unknown command").unwrap(),
                     }
                 } else {

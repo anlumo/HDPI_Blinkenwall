@@ -21,6 +21,8 @@ pub enum Command {
     PlayVideo(String),
     StopVideo,
     ShowPoetry,
+    StartTox,
+    StopTox,
 }
 
 pub fn open_server(ip: &str, port: u16) -> (thread::JoinHandle<ws::Result<()>>, Receiver<(Command, connection::ResponseHandler)>) {

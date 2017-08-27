@@ -28,6 +28,7 @@ use video::Video;
 
 use std::sync::mpsc;
 use std::process;
+use std::process::Command;
 
 extern crate portaudio;
 extern crate atomic_ring_buffer;
@@ -52,6 +53,7 @@ enum ActiveView {
     Emulator,
     VNC,
     Poetry,
+    Tox,
 }
 
 fn main() {
@@ -102,6 +104,7 @@ fn main() {
                     p.step(&display);
                 }
             },
+            ActiveView::Tox => {},
         }
         match command_receiver.try_recv() {
             Ok(message) => {
@@ -191,7 +194,38 @@ fn main() {
                             _ => {}
                         }
                         resp.send_ok()
-                    }
+                    },
+                    server::Command::StartTox => {
+                        match active_view {
+                            ActiveView::Video => {
+                                active_view = ActiveView::Off;
+                                video.stop();
+                            },
+                            ActiveView::ShaderToy => {
+                                shadertoy = None;
+                            },
+                            _ => {}
+                        }
+                        active_view = ActiveView::Tox;
+                        let output = Command::new("/usr/bin/sudo")
+                                        .arg("-Hu")
+                                        .arg("zoff")
+                                        .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh start")
+                                        .output()
+                                        .expect("failed to execute process");
+
+                        resp.send_ok()
+                    },
+                    server::Command::StopTox => {
+                        let output = Command::new("/usr/bin/sudo")
+                                        .arg("-Hu")
+                                        .arg("zoff")
+                                        .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh stop")
+                                        .output()
+                                        .expect("failed to execute process");
+
+                        resp.send_ok()
+                    },
                 }.unwrap();
             },
             Err(err) => match err {
