@@ -12,9 +12,11 @@ export default Ember.Controller.extend({
     }, "text");
   },
 
-  start() {
-    this.get('serverConnection').send({
-      cmd: "tox start",
-    });
+  actions: {
+    start() {
+      this.get('serverConnection').send({
+        cmd: "tox start",
+      });
+    },
   },
 });
