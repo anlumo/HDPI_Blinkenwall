@@ -210,7 +210,8 @@ fn main() {
                         let output = Command::new("/usr/bin/sudo")
                                         .arg("-Hu")
                                         .arg("zoff")
-                                        .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh start")
+                                        .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh")
+                                        .args("start")
                                         .output()
                                         .expect("failed to execute process");
 
@@ -220,7 +221,8 @@ fn main() {
                         let output = Command::new("/usr/bin/sudo")
                                         .arg("-Hu")
                                         .arg("zoff")
-                                        .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh stop")
+                                        .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh")
+                                        .args("stop")
                                         .output()
                                         .expect("failed to execute process");
 
