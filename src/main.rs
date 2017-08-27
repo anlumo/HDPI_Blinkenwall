@@ -211,7 +211,7 @@ fn main() {
                                         .arg("-Hu")
                                         .arg("zoff")
                                         .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh")
-                                        .args("start")
+                                        .arg("start")
                                         .output()
                                         .expect("failed to execute process");
 
@@ -222,7 +222,7 @@ fn main() {
                                         .arg("-Hu")
                                         .arg("zoff")
                                         .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh")
-                                        .args("stop")
+                                        .arg("stop")
                                         .output()
                                         .expect("failed to execute process");
 
