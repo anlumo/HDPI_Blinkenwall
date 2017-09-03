@@ -1,5 +1,5 @@
 extern crate ws;
-mod connection;
+pub mod connection;
 use self::connection::Connection;
 use std::thread;
 use std::sync::mpsc::{channel, Receiver};
@@ -19,10 +19,9 @@ pub enum Command {
     RemoveShader(String),
     ActivateShader(String),
     PlayVideo(String),
-    StopVideo,
+    TurnOff,
     ShowPoetry,
     StartTox,
-    StopTox,
 }
 
 pub fn open_server(ip: &str, port: u16) -> (thread::JoinHandle<ws::Result<()>>, Receiver<(Command, connection::ResponseHandler)>) {

@@ -14,7 +14,7 @@ export default Ember.Controller.extend({
     },
     stopVideo() {
       this.get('serverConnection').send({
-        cmd: "video stop"
+        cmd: "turnoff"
       });
     }
   }
