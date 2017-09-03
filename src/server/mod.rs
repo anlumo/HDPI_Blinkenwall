@@ -20,7 +20,7 @@ pub enum Command {
     ActivateShader(String),
     PlayVideo(String),
     TurnOff,
-    ShowPoetry,
+    ShowPoetry(String),
     StartTox,
 }
 

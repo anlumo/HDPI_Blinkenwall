@@ -110,7 +110,11 @@ impl Handler for Connection {
                             self.channel.send((Command::TurnOff, resp)).unwrap();
                         },
                         "show poetry" => {
-                            self.channel.send((Command::ShowPoetry, resp)).unwrap();
+                            if let serde_json::Value::String(ref text) = obj["text"] {
+                                self.channel.send((Command::ShowPoetry(text.clone()), resp)).unwrap();
+                            } else {
+                                self.channel.send((Command::ShowPoetry(String::new()), resp)).unwrap();
+                            }
                         },
                         "tox start" => {
                             self.channel.send((Command::StartTox, resp)).unwrap();

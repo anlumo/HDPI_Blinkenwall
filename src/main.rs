@@ -79,8 +79,8 @@ fn handle_message(cmd: &server::Command, resp: &server::connection::ResponseHand
             state_machine.to_off();
             resp.send_ok()
         },
-        &server::Command::ShowPoetry => {
-            state_machine.to_poetry();
+        &server::Command::ShowPoetry(ref text) => {
+            state_machine.to_poetry(&text);
             resp.send_ok()
         },
         &server::Command::StartTox => {

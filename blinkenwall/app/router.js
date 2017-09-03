@@ -18,6 +18,7 @@ Router.map(function() {
   this.route('vnc');
   this.route('retro');
   this.route('tox');
+  this.route('poetry');
 });
 
 export default Router;

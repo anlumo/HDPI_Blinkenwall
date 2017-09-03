@@ -105,11 +105,18 @@ impl StateMachine {
         }
     }
 
-    pub fn to_poetry(&mut self) {
-        if let State::Poetry { ref poetry } = self.state {
+    pub fn to_poetry(&mut self, text: &str) {
+        if let State::Poetry { ref mut poetry } = self.state {
+            if text.len() > 0 {
+                poetry.show_poem(&self.display, text);
+            }
         } else {
             self.exit_transition();
-            self.state = State::Poetry { poetry: Poetry::new(&self.display, &self.config.poetry.address, self.config.poetry.port, &self.config.poetry.font, self.config.poetry.speed) };
+            let mut poetry = Poetry::new(&self.display, &self.config.poetry.font, self.config.poetry.speed);
+            if text.len() > 0 {
+                poetry.show_poem(&self.display, text);
+            }
+            self.state = State::Poetry { poetry: poetry };
         }
     }
 
@@ -127,7 +134,9 @@ impl StateMachine {
             },
             State::Emulator => {},
             State::VNC => {},
-            State::Poetry { ref poetry } => {},
+            State::Poetry { ref mut poetry } => {
+                poetry.step(&self.display);
+            },
             State::Tox => {},
         };
     }
