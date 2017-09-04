@@ -34,15 +34,27 @@ impl StateMachine {
 
     fn exit_transition(&mut self) {
         match self.state {
-            State::Off => {},
-            State::ShaderToy { ref shader_toy } => {},
+            State::Off => {
+                info!("Exit Off state");
+            },
+            State::ShaderToy { ref shader_toy } => {
+                info!("Exit ShaderToy state");
+            },
             State::Video { ref mut video } => {
+                info!("Exit Video state");
                 video.stop();
             },
-            State::Emulator => {},
-            State::VNC => {},
-            State::Poetry { ref poetry } => {},
+            State::Emulator => {
+                info!("Exit Emulator state");
+            },
+            State::VNC => {
+                info!("Exit VNC state");
+            },
+            State::Poetry { ref poetry } => {
+                info!("Exit Poetry state");
+            },
             State::Tox => {
+                info!("Exit Tox state");
                 Command::new("/usr/bin/sudo")
                     .arg("-Hu")
                     .arg("zoff")
@@ -70,6 +82,7 @@ impl StateMachine {
         } else {
             self.exit_transition();
             self.state = State::Off;
+            info!("Enter Off state");
         }
     }
 
@@ -79,6 +92,7 @@ impl StateMachine {
         } else {
             self.exit_transition();
             self.state = State::ShaderToy { shader_toy: ShaderToy::new_with_audio(&self.display, shader) };
+            info!("Enter ShaderToy state");
         }
     }
 
@@ -89,6 +103,7 @@ impl StateMachine {
             let mut video = Video::new(&self.display.get_window().unwrap());
             video.play(url);
             self.state = State::Video { video: video };
+            info!("Enter Video state");
         }
     }
 
@@ -103,6 +118,7 @@ impl StateMachine {
                 .arg("start")
                 .output()
                 .expect("failed to execute process");
+            info!("Enter Tox state");
         }
     }
 
@@ -118,6 +134,7 @@ impl StateMachine {
                 poetry.show_poem(&self.display, text);
             }
             self.state = State::Poetry { poetry: poetry };
+            info!("Enter Poetry state");
         }
     }
 
