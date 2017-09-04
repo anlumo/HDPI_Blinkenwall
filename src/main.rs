@@ -94,12 +94,20 @@ fn handle_message(cmd: &server::Command, resp: &server::connection::ResponseHand
 fn main() {
     let config = match config::Config::new("blinkenwall.json") {
         Err(err) => {
+            env_logger::init().unwrap();
             error!("Error in config file: {}", err);
             process::exit(-1);
         }
         Ok(config) => config
     };
-    log4rs::init_file(config.logconfig.clone(), Default::default()).unwrap();
+    match log4rs::init_file(config.logconfig.clone(), Default::default()) {
+        Err(e) => {
+            env_logger::init().unwrap();
+            error!("Error: {}", e)
+            process::exit(-1);
+        },
+        _ => {},
+    };
     let mut database = database::Database::new(&config.database.repository);
     let display = glutin::WindowBuilder::new()
         .with_depth_buffer(24)
