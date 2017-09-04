@@ -1,4 +1,5 @@
 {
+  "logconfig": "logging.yaml",
   "database": {
     "repository": "shadertoy.git"
   },

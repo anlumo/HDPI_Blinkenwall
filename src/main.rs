@@ -27,6 +27,7 @@ extern crate palette;
 extern crate rand;
 extern crate unicode_normalization;
 extern crate mpv;
+extern crate log4rs;
 
 mod database;
 mod video;
@@ -99,6 +100,7 @@ fn main() {
         }
         Ok(config) => config
     };
+    log4rs::init_file(config.logconfig.clone(), Default::default()).unwrap();
     let mut database = database::Database::new(&config.database.repository);
     let display = glutin::WindowBuilder::new()
         .with_depth_buffer(24)

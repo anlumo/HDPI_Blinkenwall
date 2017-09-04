@@ -29,6 +29,7 @@ pub struct Poetry {
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
+    pub logconfig: String,
     pub database: Database,
     pub server: Server,
     pub display: Display,
