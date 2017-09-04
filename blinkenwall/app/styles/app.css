@@ -55,3 +55,7 @@ img.pixelated {
     image-rendering: optimize-contrast;         /* CSS3 Proposed                  */
     -ms-interpolation-mode: nearest-neighbor;   /* IE8+                           */
 }
+.vcenter {
+  display: flex;
+  align-items: center;
+}
