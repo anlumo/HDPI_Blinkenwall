@@ -44,7 +44,7 @@ impl StateMachine {
             State::Poetry { ref poetry } => {},
             State::Tox => {
                 Command::new("/usr/bin/sudo")
-                    .arg("-Hiu")
+                    .arg("-Hu")
                     .arg("zoff")
                     .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh")
                     .arg("stop")
@@ -96,7 +96,7 @@ impl StateMachine {
         } else {
             self.exit_transition();
             Command::new("/usr/bin/sudo")
-                .arg("-Hiu")
+                .arg("-Hu")
                 .arg("zoff")
                 .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh")
                 .arg("start")
