@@ -92,7 +92,6 @@ fn handle_message(cmd: &server::Command, resp: &server::connection::ResponseHand
 }
 
 fn main() {
-    env_logger::init().unwrap();
     let config = match config::Config::new("blinkenwall.json") {
         Err(err) => {
             error!("Error in config file: {}", err);
