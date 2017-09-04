@@ -13,8 +13,6 @@
     "height": 144
   },
   "poetry": {
-    "address": "0.0.0.0",
-    "port": 8266,
     "font": "tom-thumb.bdf",
     "speed": 10
   }
