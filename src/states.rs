@@ -75,6 +75,7 @@ impl StateMachine {
 
     pub fn to_shader_toy(&mut self, shader: &str) {
         if let State::ShaderToy { ref shader_toy } = self.state {
+            self.state = State::ShaderToy { shader_toy: ShaderToy::new_with_audio(&self.display, shader) };
         } else {
             self.exit_transition();
             self.state = State::ShaderToy { shader_toy: ShaderToy::new_with_audio(&self.display, shader) };
