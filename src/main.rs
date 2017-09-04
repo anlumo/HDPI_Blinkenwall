@@ -103,7 +103,7 @@ fn main() {
     match log4rs::init_file(config.logconfig.clone(), Default::default()) {
         Err(e) => {
             env_logger::init().unwrap();
-            error!("Error: {}", e)
+            error!("Error: {}", e);
             process::exit(-1);
         },
         _ => {},
