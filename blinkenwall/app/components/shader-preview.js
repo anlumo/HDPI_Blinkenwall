@@ -27,6 +27,7 @@ varying vec2 vTexCoords;
 vec4 fragColor;
 
 uniform float iGlobalTime;
+uniform float iTime;
 uniform vec3 iResolution;
 uniform vec4 iMouse;
 uniform vec4 iDate;
@@ -43,6 +44,7 @@ void main() {
 
 const UNIFORM_NAMES = [
   'iGlobalTime',
+  'iTime',
   'iResolution',
   'iMouse',
   'iDate',
@@ -131,8 +133,10 @@ export default Ember.Component.extend({
 
   configureUniforms(gl, program) {
     let canvas = gl.canvas;
+    let time = (Date.now() - this.get('startRenderTimestamp')) / 1000;
 
-    gl.uniform1f(program.uniformsCache['iGlobalTime'], (Date.now() - this.get('startRenderTimestamp')) / 1000);
+    gl.uniform1f(program.uniformsCache['iGlobalTime'], time);
+    gl.uniform1f(program.uniformsCache['iTime'], time);
     gl.uniform3fv(program.uniformsCache['iResolution'], [canvas.width, canvas.height, 1]);
     gl.uniform4fv(program.uniformsCache['iMouse'], [0, 0, 0, 0]);
     gl.uniform4fv(program.uniformsCache['iDate'], [0,0,0,0]);

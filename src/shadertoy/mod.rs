@@ -32,6 +32,7 @@ in vec2 vTexCoords;
 out vec4 fragColor;
 
 uniform float iGlobalTime;
+uniform float iTime;
 uniform vec3 iResolution;
 uniform vec4 iMouse;
 uniform vec4 iDate;
@@ -119,8 +120,10 @@ impl ShaderToy {
         let elapsed = self.startup_time.elapsed();
         let utc: DateTime<UTC> = UTC::now();
         let size = display.get_window().unwrap().get_inner_size().unwrap();
+        let time = elapsed.as_secs() as f32 + elapsed.subsec_nanos() as f32 / 1.0e9;
         let uniforms = uniform! {
-            iGlobalTime: elapsed.as_secs() as f32 + elapsed.subsec_nanos() as f32 / 1.0e9,
+            iGlobalTime: time,
+            iTime: time,
             iResolution: [size.0 as f32, size.1 as f32, 1.0],
             iMouse: [0.0_f32, 0.0, 0.0, 0.0],
             iDate: [utc.year() as f32, utc.month0() as f32, utc.day0() as f32, utc.num_seconds_from_midnight() as f32 + utc.nanosecond() as f32 / 1.0e9],
