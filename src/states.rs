@@ -69,7 +69,7 @@ impl StateMachine {
         match self.state {
             State::Off => None,
             State::ShaderToy { ref shader_toy } => Some(Duration::from_secs(0)),
-            State::Video { ref video } => Some(Duration::from_secs(1)),
+            State::Video { ref video } => Some(Duration::from_secs(0)),
             State::Emulator => None,
             State::VNC => None,
             State::Poetry { ref poetry } => Some(Duration::from_secs(0)),
