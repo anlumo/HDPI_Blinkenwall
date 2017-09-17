@@ -129,6 +129,7 @@ impl StateMachine {
                 .arg("start")
                 .output()
                 .expect("failed to execute process");
+            self.state = State::Tox;
             info!("Enter Tox state");
         }
     }
