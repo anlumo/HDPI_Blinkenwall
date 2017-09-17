@@ -62,6 +62,11 @@ impl StateMachine {
                     .arg("stop")
                     .output()
                     .expect("failed to execute process");
+                Command::new("/usr/bin/sudo")
+                    .arg("/bin/chvt")
+                    .arg("1")
+                    .output()
+                    .expect("failed to execute process");
             },
         };
     }
@@ -112,6 +117,11 @@ impl StateMachine {
         if let State::Tox = self.state {
         } else {
             self.exit_transition();
+            Command::new("/usr/bin/sudo")
+                .arg("/bin/chvt")
+                .arg("2")
+                .output()
+                .expect("failed to execute process");
             Command::new("/usr/bin/sudo")
                 .arg("-Hu")
                 .arg("zoff")

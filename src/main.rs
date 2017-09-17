@@ -16,6 +16,7 @@ extern crate serde_json;
 
 use std::sync::mpsc;
 use std::process;
+use std::process::Command;
 
 extern crate git2;
 extern crate uuid;
@@ -92,6 +93,13 @@ fn handle_message(cmd: &server::Command, resp: &server::connection::ResponseHand
 }
 
 fn main() {
+    // just in case
+    Command::new("/usr/bin/sudo")
+        .arg("/bin/chvt")
+        .arg("1")
+        .output()
+        .expect("failed to execute process");
+
     let config = match config::Config::new("blinkenwall.json") {
         Err(err) => {
             env_logger::init().unwrap();
