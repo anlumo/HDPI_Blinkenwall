@@ -89,6 +89,10 @@ fn handle_message(cmd: &server::Command, resp: &server::connection::ResponseHand
             state_machine.to_tox();
             resp.send_ok()
         },
+        &server::Command::ToxMessage(ref text) => {
+            state_machine.to_tox_message(&text);
+            resp.send_ok()
+        },
     }.unwrap();
 }
 

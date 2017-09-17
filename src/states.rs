@@ -15,6 +15,7 @@ pub enum State {
     VNC,
     Poetry { poetry: Poetry },
     Tox,
+    ToxMessage { poetry: Poetry },
 }
 
 pub struct StateMachine {
@@ -32,7 +33,7 @@ impl StateMachine {
         }
     }
 
-    fn exit_transition(&mut self) {
+    fn exit_transition(&mut self, next: &State) {
         match self.state {
             State::Off => {
                 info!("Exit Off state");
@@ -55,18 +56,26 @@ impl StateMachine {
             },
             State::Tox => {
                 info!("Exit Tox state");
-                Command::new("/usr/bin/sudo")
-                    .arg("-Hu")
-                    .arg("zoff")
-                    .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh")
-                    .arg("stop")
-                    .output()
-                    .expect("failed to execute process");
+                match next {
+                    &State::ToxMessage { ref poetry } => {},
+                    _ => {
+                        Command::new("/usr/bin/sudo")
+                            .arg("-Hu")
+                            .arg("zoff")
+                            .arg("/home/zoff/ToxBlinkenwall/toxblinkenwall/initscript.sh")
+                            .arg("stop")
+                            .output()
+                            .expect("failed to execute process");
+                    },
+                }
                 Command::new("/usr/bin/sudo")
                     .arg("/bin/chvt")
                     .arg("1")
                     .output()
                     .expect("failed to execute process");
+            },
+            State::ToxMessage { ref poetry } => {
+                info!("Exit Tox Message state");
             },
         };
     }
@@ -77,7 +86,7 @@ impl StateMachine {
             State::Video { ref video } => Some(Duration::from_secs(0)),
             State::Emulator => None,
             State::VNC => None,
-            State::Poetry { ref poetry } => Some(Duration::from_secs(0)),
+            State::Poetry { ref poetry } | State::ToxMessage { ref poetry } => Some(Duration::from_secs(0)),
             State::Tox => None,
         }
     }
@@ -85,8 +94,9 @@ impl StateMachine {
     pub fn to_off(&mut self) {
         if let State::Off = self.state {
         } else {
-            self.exit_transition();
-            self.state = State::Off;
+            let next = State::Off;
+            self.exit_transition(&next);
+            self.state = next;
             info!("Enter Off state");
         }
     }
@@ -94,8 +104,9 @@ impl StateMachine {
     pub fn to_shader_toy(&mut self, shader: &str) {
         if let State::ShaderToy { ref shader_toy } = self.state {
         } else {
-            self.exit_transition();
-            self.state = State::ShaderToy { shader_toy: ShaderToy::new_with_audio(&self.display, shader) };
+            let next = State::ShaderToy { shader_toy: ShaderToy::new_with_audio(&self.display, shader) };
+            self.exit_transition(&next);
+            self.state = next;
             info!("Enter ShaderToy state");
             return;
         }
@@ -105,10 +116,11 @@ impl StateMachine {
     pub fn to_video(&mut self, url: &str) {
         if let State::Video { ref video } = self.state {
         } else {
-            self.exit_transition();
             let mut video = Video::new(&self.display.get_window().unwrap());
             video.play(url);
-            self.state = State::Video { video: video };
+            let next = State::Video { video: video };
+            self.exit_transition(&next);
+            self.state = next;
             info!("Enter Video state");
         }
     }
@@ -116,7 +128,8 @@ impl StateMachine {
     pub fn to_tox(&mut self) {
         if let State::Tox = self.state {
         } else {
-            self.exit_transition();
+            let next = State::Tox;
+            self.exit_transition(&next);
             Command::new("/usr/bin/sudo")
                 .arg("/bin/chvt")
                 .arg("2")
@@ -129,7 +142,7 @@ impl StateMachine {
                 .arg("start")
                 .output()
                 .expect("failed to execute process");
-            self.state = State::Tox;
+            self.state = next;
             info!("Enter Tox state");
         }
     }
@@ -140,13 +153,31 @@ impl StateMachine {
                 poetry.show_poem(&self.display, text);
             }
         } else {
-            self.exit_transition();
             let mut poetry = Poetry::new(&self.display, &self.config.poetry.font, self.config.poetry.speed);
             if text.len() > 0 {
                 poetry.show_poem(&self.display, text);
             }
-            self.state = State::Poetry { poetry: poetry };
+            let next = State::Poetry { poetry: poetry };
+            self.exit_transition(&next);
+            self.state = next;
             info!("Enter Poetry state");
+        }
+    }
+
+    pub fn to_tox_message(&mut self, text: &str) {
+        if let State::ToxMessage { ref mut poetry } = self.state {
+            if text.len() > 0 {
+                poetry.show_poem(&self.display, text);
+            }
+        } else {
+            let mut poetry = Poetry::new(&self.display, &self.config.poetry.font, self.config.poetry.speed);
+            if text.len() > 0 {
+                poetry.show_poem(&self.display, text);
+            }
+            let next = State::ToxMessage { poetry: poetry };
+            self.exit_transition(&next);
+            self.state = next;
+            info!("Enter Tox Message state");
         }
     }
 
@@ -164,7 +195,7 @@ impl StateMachine {
             },
             State::Emulator => {},
             State::VNC => {},
-            State::Poetry { ref mut poetry } => {
+            State::Poetry { ref mut poetry } | State::ToxMessage { ref mut poetry } => {
                 poetry.step(&self.display);
             },
             State::Tox => {},

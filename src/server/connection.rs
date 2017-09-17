@@ -119,6 +119,13 @@ impl Handler for Connection {
                         "tox start" => {
                             self.channel.send((Command::StartTox, resp)).unwrap();
                         },
+                        "tox message" => {
+                            if let serde_json::Value::String(ref text) = obj["text"] {
+                                self.channel.send((Command::ToxMessage(text.clone()), resp)).unwrap();
+                            } else {
+                                self.channel.send((Command::ToxMessage(String::new()), resp)).unwrap();
+                            }
+                        },
                         _ => resp.send_error(404, "Unknown command").unwrap(),
                     }
                 } else {
