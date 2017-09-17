@@ -93,7 +93,7 @@ fn handle_message(cmd: &server::Command, resp: &server::connection::ResponseHand
             state_machine.to_tox_message(&text);
             resp.send_ok()
         },
-    }.unwrap();
+    };
 }
 
 fn main() {
