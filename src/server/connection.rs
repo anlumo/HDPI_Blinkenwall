@@ -143,12 +143,12 @@ impl Handler for Connection {
             CloseCode::Away   => info!("[{}] The client is leaving the site.", self.address),
             _ => error!("[{}] The client encountered an error: {}", self.address, reason),
         }
-        self.out.shutdown().unwrap();
+        self.out.close().unwrap();
     }
 
     fn on_error(&mut self, err: Error) {
         error!("[{}] The server encountered an error: {:?}", self.address, err);
-        self.out.shutdown().unwrap();
+        self.out.close().unwrap();
     }
 }
 
