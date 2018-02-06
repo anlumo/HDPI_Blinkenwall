@@ -98,6 +98,7 @@ fn handle_message(cmd: &server::Command, resp: &server::connection::ResponseHand
 
 fn main() {
     // just in case
+    #[cfg(target_os = "linux")]
     Command::new("/usr/bin/sudo")
         .arg("/bin/chvt")
         .arg("1")

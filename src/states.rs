@@ -59,6 +59,7 @@ impl StateMachine {
                 match next {
                     &State::ToxMessage { ref poetry } => {},
                     _ => {
+                        #[cfg(target_os = "linux")]
                         Command::new("/usr/bin/sudo")
                             .arg("-Hu")
                             .arg("zoff")
@@ -68,6 +69,7 @@ impl StateMachine {
                             .expect("failed to execute process");
                     },
                 }
+                #[cfg(target_os = "linux")]
                 Command::new("/usr/bin/sudo")
                     .arg("/bin/chvt")
                     .arg("1")
@@ -130,11 +132,13 @@ impl StateMachine {
         } else {
             let next = State::Tox;
             self.exit_transition(&next);
+            #[cfg(target_os = "linux")]
             Command::new("/usr/bin/sudo")
                 .arg("/bin/chvt")
                 .arg("2")
                 .output()
                 .expect("failed to execute process");
+            #[cfg(target_os = "linux")]
             Command::new("/usr/bin/sudo")
                 .arg("-Hu")
                 .arg("zoff")
