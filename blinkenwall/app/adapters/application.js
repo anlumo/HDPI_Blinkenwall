@@ -1,5 +1,6 @@
 import Ember from 'ember';
 import DS from 'ember-data';
+import jQuery from 'jquery';
 
 export default DS.Adapter.extend({
   serverConnection: Ember.inject.service(),

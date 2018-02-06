@@ -7,9 +7,9 @@ export default Ember.Controller.extend({
   init() {
     this._super(...arguments);
 
-    $.get('/tox/toxid.txt', data => {
+    fetch('/tox/toxid.txt').then(response => response.text()).then(data => {
       this.set('toxid', data);
-    }, "text");
+    });
   },
 
   actions: {

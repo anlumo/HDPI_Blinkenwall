@@ -9,9 +9,11 @@ export default Ember.Component.extend({
 
   shuffle(array) {
     let top = array.length;
-    if(top) while(--top) {
-      let current = Math.floor(Math.random() * (top + 1));
-      [array[current], array[top]] = [array[top], array[current]];
+    if(top) {
+      while(--top) {
+        let current = Math.floor(Math.random() * (top + 1));
+        [array[current], array[top]] = [array[top], array[current]];
+      }
     }
     return array;
   },
