@@ -1,13 +1,10 @@
-use glium;
-use glium::Surface;
+use glium::{Surface, uniform, program, implement_vertex};
 use glium::index::PrimitiveType;
-use glium::backend::glutin_backend::GlutinFacade;
+use glium::backend::glutin::Display;
 use glium::texture::texture2d::Texture2d;
 use glium::texture::{RawImage2d, ClientFormat, MipmapsOption, UncompressedFloatFormat};
 use std::time::Instant;
-use chrono::prelude::UTC;
-use chrono::datetime::DateTime;
-use chrono::{Datelike, Timelike};
+use chrono::{DateTime, Datelike, Timelike, offset::Utc};
 use std::borrow::Cow;
 
 mod audio;
@@ -69,7 +66,7 @@ pub struct ShaderToy {
 }
 
 impl ShaderToy {
-    fn new_internal(display: &GlutinFacade, shader: &str, audio: Option<Audio>) -> ShaderToy {
+    fn new_internal(display: &Display, shader: &str, audio: Option<Audio>) -> ShaderToy {
         implement_vertex!(Vertex, position, texcoords);
 
         let vertex_buffer = glium::VertexBuffer::new(display, &[
@@ -93,11 +90,11 @@ impl ShaderToy {
         }
     }
 
-    pub fn new(display: &GlutinFacade, shader: &str) -> ShaderToy {
+    pub fn new(display: &Display, shader: &str) -> ShaderToy {
         Self::new_internal(display, shader, None)
     }
 
-    pub fn new_with_audio(display: &GlutinFacade, shader: &str) -> ShaderToy {
+    pub fn new_with_audio(display: &Display, shader: &str) -> ShaderToy {
         let mut audio = audio::AudioInput::new();
         let data = [0.0; 1024];
         let rawimage = RawImage2d {
@@ -116,15 +113,15 @@ impl ShaderToy {
         }))
     }
 
-    pub fn step(&mut self, display: &GlutinFacade) {
+    pub fn step(&mut self, display: &Display) {
         let elapsed = self.startup_time.elapsed();
-        let utc: DateTime<UTC> = UTC::now();
-        let size = display.get_window().unwrap().get_inner_size().unwrap();
+        let utc: DateTime<Utc> = Utc::now();
+        let size = display.gl_window().window().get_inner_size().unwrap();
         let time = elapsed.as_secs() as f32 + elapsed.subsec_nanos() as f32 / 1.0e9;
         let uniforms = uniform! {
             iGlobalTime: time,
             iTime: time,
-            iResolution: [size.0 as f32, size.1 as f32, 1.0],
+            iResolution: [size.width as f32, size.height as f32, 1.0],
             iMouse: [0.0_f32, 0.0, 0.0, 0.0],
             iDate: [utc.year() as f32, utc.month0() as f32, utc.day0() as f32, utc.num_seconds_from_midnight() as f32 + utc.nanosecond() as f32 / 1.0e9],
             iFrame: self.frame,
@@ -133,7 +130,7 @@ impl ShaderToy {
         target.clear_color_and_depth((0.0, 0.0, 0.0, 0.0), 1.0);
 
         if let Some(ref mut audio) = self.audio {
-            if let Ok(buffer) = audio.input.poll() {
+            if let Some(buffer) = audio.input.poll() {
                 let mut texels = [0.; 1024];
                 // time domain
                 for index in 0..512 {

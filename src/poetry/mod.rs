@@ -1,14 +1,12 @@
-use glium;
-use glium::backend::glutin_backend::GlutinFacade;
+use glium::{implement_vertex, program};
+use glium::backend::glutin::Display;
 use glium::index::PrimitiveType;
 use std::net::{TcpListener, TcpStream};
-use bdf;
 use std::io::{Read, ErrorKind};
-use rand;
-use rand::{XorShiftRng, Rng};
+use rand::FromEntropy;
+use rand_xoshiro::Xoshiro256Plus;
 use std::f32;
 use std::borrow::Cow;
-
 
 mod render;
 use self::render::Vertex;
@@ -17,7 +15,7 @@ pub struct Poetry {
     speed: f32,
     font: bdf::Font,
     poems: Vec<render::Poem>,
-    rand: XorShiftRng,
+    rand: Xoshiro256Plus,
     program: glium::Program,
     vertex_buffer: glium::VertexBuffer<Vertex>,
     index_buffer: glium::IndexBuffer<u16>,
@@ -52,7 +50,7 @@ void main() {
 ";
 
 impl Poetry {
-    pub fn new(display: &GlutinFacade, font: &str, speed: f32) -> Poetry {
+    pub fn new(display: &Display, font: &str, speed: f32) -> Poetry {
         implement_vertex!(Vertex, position, texcoords);
 
         let vertex_buffer = glium::VertexBuffer::new(display, &[
@@ -69,18 +67,18 @@ impl Poetry {
             speed: speed,
             font: font,
             poems: Vec::new(),
-            rand: rand::weak_rng(),
+            rand: Xoshiro256Plus::from_entropy(),
             program: program,
             vertex_buffer: vertex_buffer,
             index_buffer: index_buffer,
         }
     }
 
-    pub fn show_poem(&mut self, display: &GlutinFacade, text: &str) {
+    pub fn show_poem(&mut self, display: &Display, text: &str) {
         self.poems.push(render::Poem::new(&display, &self.font, text, &mut self.rand));
     }
 
-    pub fn step(&mut self, display: &GlutinFacade) {
+    pub fn step(&mut self, display: &Display) {
         // fade poems
         for i in (0..self.poems.len()).rev() {
             let duration = self.poems[i].created.elapsed();

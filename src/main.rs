@@ -4,11 +4,7 @@
 #[macro_use] extern crate log;
 extern crate env_logger;
 
-#[macro_use]
-extern crate glium;
-extern crate chrono;
 use glium::glutin;
-use glium::DisplayBuild;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
@@ -17,18 +13,6 @@ extern crate serde_json;
 use std::sync::mpsc;
 use std::process;
 use std::process::Command;
-
-extern crate git2;
-extern crate uuid;
-extern crate portaudio;
-extern crate atomic_ring_buffer;
-extern crate rustfft;
-extern crate bdf;
-extern crate palette;
-extern crate rand;
-extern crate unicode_normalization;
-extern crate mpv;
-extern crate log4rs;
 
 mod database;
 mod video;
@@ -107,7 +91,7 @@ fn main() {
 
     let config = match config::Config::new("blinkenwall.json") {
         Err(err) => {
-            env_logger::init().unwrap();
+            env_logger::init();
             error!("Error in config file: {}", err);
             process::exit(-1);
         }
@@ -115,20 +99,22 @@ fn main() {
     };
     match log4rs::init_file(config.logconfig.clone(), Default::default()) {
         Err(e) => {
-            env_logger::init().unwrap();
+            env_logger::init();
             error!("Error: {}", e);
             process::exit(-1);
         },
         _ => {},
     };
     let mut database = database::Database::new(&config.database.repository);
-    let display = glutin::WindowBuilder::new()
+    let mut events_loop = glutin::EventsLoop::new();
+    let window = glutin::WindowBuilder::new()
+        .with_fullscreen(Some(events_loop.get_primary_monitor()))
+        .with_dimensions(glutin::dpi::LogicalSize::new(config.display.width.into(), config.display.height.into()));
+    let context = glutin::ContextBuilder::new()
         .with_depth_buffer(24)
-        .with_fullscreen(glutin::get_primary_monitor())
-        .with_vsync()
-        .build_glium()
-        .unwrap();
-    display.get_window().unwrap().set_inner_size(config.display.width, config.display.height);
+        .with_vsync(true)
+        .with_hardware_acceleration(Some(true));
+    let display = glium::Display::new(window, context, &events_loop).unwrap();
 
     let (server_thread, command_receiver) = server::open_server(&config.server.address, config.server.port);
 

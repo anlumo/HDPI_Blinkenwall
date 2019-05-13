@@ -1,6 +1,6 @@
 use portaudio as pa;
 use std::thread;
-use atomic_ring_buffer::AtomicRingBuffer;
+use atomicring::AtomicRingBuffer;
 use std::sync::Arc;
 
 const FRAMES: usize = 1024;
@@ -8,7 +8,7 @@ const FRAMES: usize = 1024;
 pub struct AudioInput {
     portaudio: pa::PortAudio,
     stream: pa::Stream<pa::NonBlocking, pa::stream::Input<f32>>,
-    ringbuffer: Arc<AtomicRingBuffer<[f32; FRAMES], [[f32; FRAMES]; 5]>>,
+    ringbuffer: Arc<AtomicRingBuffer<[f32; FRAMES]>>,
 }
 
 impl<'a> AudioInput {
@@ -19,25 +19,23 @@ impl<'a> AudioInput {
         let latency = portaudio.device_info(input_device).unwrap().default_low_input_latency;
         let input_params = pa::StreamParameters::<f32>::new(input_device, 1, true, latency);
         let settings = pa::stream::InputSettings::new(input_params, 44100.0, FRAMES as u32);
-        let buffer = [[0.0; FRAMES]; 5];
-
-        let ringbuffer = Arc::new(AtomicRingBuffer::new(buffer));
+        let ringbuffer = Arc::new(AtomicRingBuffer::<[f32; FRAMES]>::with_capacity(8));
 
         let callback = {
             let ringbuffer = ringbuffer.clone();
             move |pa::stream::InputCallbackArgs { buffer, frames, flags, time }| {
                 assert_eq!(frames, FRAMES);
-                ringbuffer.enqueue(|x| {
-                    x.clone_from_slice(buffer);
-                });
+                let mut copy = [0.0; FRAMES];
+                copy.copy_from_slice(buffer);
+                ringbuffer.push_overwrite(copy);
                 pa::Continue
             }
         };
 
         AudioInput {
             stream: portaudio.open_non_blocking_stream(settings, callback).unwrap(),
-            portaudio: portaudio,
-            ringbuffer: ringbuffer,
+            portaudio,
+            ringbuffer,
         }
     }
 
@@ -49,17 +47,20 @@ impl<'a> AudioInput {
         self.stream.stop()
     }
 
-    pub fn poll(&mut self) -> Result<[f32; FRAMES], ()> {
-        let mut result = try!(self.ringbuffer.dequeue_spin(|x| *x));
-        loop {
-            match self.ringbuffer.dequeue_spin(|x| *x) {
-                Ok(buffer) => {
-                    result = buffer;
-                },
-                Err(()) => {
-                    return Ok(result);
+    pub fn poll(&mut self) -> Option<[f32; FRAMES]> {
+        if let Some(mut result) = self.ringbuffer.try_pop() {
+            loop {
+                match self.ringbuffer.try_pop() {
+                    Some(buffer) => {
+                        result = buffer;
+                    },
+                    None => {
+                        return Some(result);
+                    }
                 }
             }
+        } else {
+            None
         }
     }
 }
