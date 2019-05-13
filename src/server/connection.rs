@@ -1,8 +1,7 @@
 use super::ws::{self, Sender, Handler, CloseCode, Handshake, Error, Result, ErrorKind};
 use std::sync::mpsc;
 use super::Command;
-use serde_json;
-use server::ShaderData;
+use crate::server::ShaderData;
 
 #[derive(Serialize, Deserialize)]
 struct CommandHeader {

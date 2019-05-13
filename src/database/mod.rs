@@ -1,7 +1,5 @@
 use git2::{Repository, ObjectType, Commit, Signature, TreeBuilder, Error, Branch, BranchType, Oid};
-use uuid;
-use server::ShaderData;
-use serde_json;
+use crate::server::ShaderData;
 
 pub struct Database {
     repository: Repository
@@ -111,7 +109,7 @@ impl Database {
     }
 
     pub fn add(&self, data: &ShaderData, message: &str) -> Result<(String, String), Error> {
-        let uuid = format!("{}", uuid::Uuid::new_v4().hyphenated());
+        let uuid = format!("{}", uuid::Uuid::new_v4().to_hyphenated());
 
         let commit_oid = self.create_commit(None, &data, &message)?;
         let commit = self.repository.find_commit(commit_oid)?;

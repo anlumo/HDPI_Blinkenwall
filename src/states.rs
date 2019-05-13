@@ -1,11 +1,11 @@
-use glium::backend::glutin_backend::GlutinFacade;
+use glium::backend::glutin::Display;
 use std::time::Duration;
 use std::process::Command;
 
-use shadertoy::ShaderToy;
-use video::Video;
-use poetry::Poetry;
-use config::Config;
+use crate::shadertoy::ShaderToy;
+use crate::video::Video;
+use crate::poetry::Poetry;
+use crate::config::Config;
 
 pub enum State {
     Off,
@@ -19,13 +19,13 @@ pub enum State {
 }
 
 pub struct StateMachine {
-    display: GlutinFacade,
+    display: Display,
     state: State,
     config: Config,
 }
 
 impl StateMachine {
-    pub fn new(display: GlutinFacade, config: Config) -> Self {
+    pub fn new(display: Display, config: Config) -> Self {
         StateMachine {
             state: State::Off,
             display: display,
@@ -116,7 +116,7 @@ impl StateMachine {
     pub fn to_video(&mut self, url: &str) {
         if let State::Video { ref video } = self.state {
         } else {
-            let mut video = Video::new(&self.display.get_window().unwrap());
+            let mut video = Video::new(&self.display);
             video.play(url);
             let next = State::Video { video: video };
             self.exit_transition(&next);
@@ -188,7 +188,7 @@ impl StateMachine {
                 shader_toy.step(&self.display);
             },
             State::Video { ref mut video } => {
-                match video.step(&self.display.get_window().unwrap()) {
+                match video.step(&self.display) {
                     None => {},
                     Some(evt) => info!("MPV event: {:?}", evt),
                 };
