@@ -6,6 +6,7 @@ use crate::shadertoy::ShaderToy;
 use crate::video::Video;
 use crate::poetry::Poetry;
 use crate::config::Config;
+use crate::frontpanel;
 
 pub enum State {
     Off,
@@ -34,9 +35,14 @@ impl StateMachine {
     }
 
     fn exit_transition(&mut self, next: &State) {
+        match next {
+            State::Off => frontpanel::set_relay(false).unwrap_or_else(|err| { error!("{}", err); }),
+            _ => {},
+        }
         match self.state {
             State::Off => {
                 info!("Exit Off state");
+                frontpanel::set_relay(true);
             },
             State::ShaderToy { ref shader_toy } => {
                 info!("Exit ShaderToy state");

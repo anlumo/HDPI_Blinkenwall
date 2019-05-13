@@ -21,6 +21,7 @@ mod states;
 mod config;
 mod server;
 mod shadertoy;
+mod frontpanel;
 
 fn handle_message(cmd: &server::Command, resp: &server::connection::ResponseHandler, database: &database::Database, state_machine: &mut states::StateMachine) {
     match cmd {
