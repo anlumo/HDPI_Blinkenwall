@@ -1,12 +1,8 @@
 use glium::backend::glutin::Display;
-use std::time::Duration;
-use std::process::Command;
+use log::{error, info};
+use std::{process::Command, time::Duration};
 
-use crate::shadertoy::ShaderToy;
-use crate::video::Video;
-use crate::poetry::Poetry;
-use crate::config::Config;
-use crate::frontpanel;
+use crate::{config::Config, frontpanel, poetry::Poetry, shadertoy::ShaderToy, video::Video};
 
 pub enum State {
     Off,
@@ -29,41 +25,42 @@ impl StateMachine {
     pub fn new(display: Display, config: Config) -> Self {
         StateMachine {
             state: State::Off,
-            display: display,
-            config: config,
+            display,
+            config,
         }
     }
 
     fn exit_transition(&mut self, next: &State) {
-        match next {
-            State::Off => frontpanel::set_relay(false).unwrap_or_else(|err| { error!("{}", err); }),
-            _ => {},
+        if matches!(next, State::Off) {
+            frontpanel::set_relay(false).unwrap_or_else(|err| {
+                error!("{}", err);
+            });
         }
         match self.state {
             State::Off => {
                 info!("Exit Off state");
                 frontpanel::set_relay(true);
-            },
+            }
             State::ShaderToy { ref shader_toy } => {
                 info!("Exit ShaderToy state");
-            },
+            }
             State::Video { ref mut video } => {
                 info!("Exit Video state");
                 video.stop();
-            },
+            }
             State::Emulator => {
                 info!("Exit Emulator state");
-            },
+            }
             State::VNC => {
                 info!("Exit VNC state");
-            },
+            }
             State::Poetry { ref poetry } => {
                 info!("Exit Poetry state");
-            },
+            }
             State::Tox => {
                 info!("Exit Tox state");
                 match next {
-                    &State::ToxMessage { ref poetry } => {},
+                    &State::ToxMessage { ref poetry } => {}
                     _ => {
                         #[cfg(target_os = "linux")]
                         Command::new("/usr/bin/sudo")
@@ -73,7 +70,7 @@ impl StateMachine {
                             .arg("stop")
                             .output()
                             .expect("failed to execute process");
-                    },
+                    }
                 }
                 #[cfg(target_os = "linux")]
                 Command::new("/usr/bin/sudo")
@@ -81,10 +78,10 @@ impl StateMachine {
                     .arg("1")
                     .output()
                     .expect("failed to execute process");
-            },
+            }
             State::ToxMessage { ref poetry } => {
                 info!("Exit Tox Message state");
-            },
+            }
         };
     }
     pub fn interval(&self) -> Option<Duration> {
@@ -94,7 +91,9 @@ impl StateMachine {
             State::Video { ref video } => Some(Duration::from_secs(0)),
             State::Emulator => None,
             State::VNC => None,
-            State::Poetry { ref poetry } | State::ToxMessage { ref poetry } => Some(Duration::from_secs(0)),
+            State::Poetry { ref poetry } | State::ToxMessage { ref poetry } => {
+                Some(Duration::from_secs(0))
+            }
             State::Tox => None,
         }
     }
@@ -112,13 +111,17 @@ impl StateMachine {
     pub fn to_shader_toy(&mut self, shader: &str) {
         if let State::ShaderToy { ref shader_toy } = self.state {
         } else {
-            let next = State::ShaderToy { shader_toy: ShaderToy::new_with_audio(&self.display, shader) };
+            let next = State::ShaderToy {
+                shader_toy: ShaderToy::new_with_audio(&self.display, shader),
+            };
             self.exit_transition(&next);
             self.state = next;
             info!("Enter ShaderToy state");
             return;
         }
-        self.state = State::ShaderToy { shader_toy: ShaderToy::new_with_audio(&self.display, shader) };
+        self.state = State::ShaderToy {
+            shader_toy: ShaderToy::new_with_audio(&self.display, shader),
+        };
     }
 
     pub fn to_video(&mut self, url: &str) {
@@ -126,7 +129,7 @@ impl StateMachine {
         } else {
             let mut video = Video::new(&self.display);
             video.play(url);
-            let next = State::Video { video: video };
+            let next = State::Video { video };
             self.exit_transition(&next);
             self.state = next;
             info!("Enter Video state");
@@ -159,15 +162,19 @@ impl StateMachine {
 
     pub fn to_poetry(&mut self, text: &str) {
         if let State::Poetry { ref mut poetry } = self.state {
-            if text.len() > 0 {
+            if !text.is_empty() {
                 poetry.show_poem(&self.display, text);
             }
         } else {
-            let mut poetry = Poetry::new(&self.display, &self.config.poetry.font, self.config.poetry.speed);
-            if text.len() > 0 {
+            let mut poetry = Poetry::new(
+                &self.display,
+                &self.config.poetry.font,
+                self.config.poetry.speed,
+            );
+            if !text.is_empty() {
                 poetry.show_poem(&self.display, text);
             }
-            let next = State::Poetry { poetry: poetry };
+            let next = State::Poetry { poetry };
             self.exit_transition(&next);
             self.state = next;
             info!("Enter Poetry state");
@@ -176,15 +183,19 @@ impl StateMachine {
 
     pub fn to_tox_message(&mut self, text: &str) {
         if let State::ToxMessage { ref mut poetry } = self.state {
-            if text.len() > 0 {
+            if !text.is_empty() {
                 poetry.show_poem(&self.display, text);
             }
         } else {
-            let mut poetry = Poetry::new(&self.display, &self.config.poetry.font, self.config.poetry.speed);
-            if text.len() > 0 {
+            let mut poetry = Poetry::new(
+                &self.display,
+                &self.config.poetry.font,
+                self.config.poetry.speed,
+            );
+            if !text.is_empty() {
                 poetry.show_poem(&self.display, text);
             }
-            let next = State::ToxMessage { poetry: poetry };
+            let next = State::ToxMessage { poetry };
             self.exit_transition(&next);
             self.state = next;
             info!("Enter Tox Message state");
@@ -193,22 +204,22 @@ impl StateMachine {
 
     pub fn update(&mut self) {
         match self.state {
-            State::Off => {},
+            State::Off => {}
             State::ShaderToy { ref mut shader_toy } => {
                 shader_toy.step(&self.display);
-            },
+            }
             State::Video { ref mut video } => {
                 match video.step(&self.display) {
-                    None => {},
+                    None => {}
                     Some(evt) => info!("MPV event: {:?}", evt),
                 };
-            },
-            State::Emulator => {},
-            State::VNC => {},
+            }
+            State::Emulator => {}
+            State::VNC => {}
             State::Poetry { ref mut poetry } | State::ToxMessage { ref mut poetry } => {
                 poetry.step(&self.display);
-            },
-            State::Tox => {},
+            }
+            State::Tox => {}
         };
     }
 }
