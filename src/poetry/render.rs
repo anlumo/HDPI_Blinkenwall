@@ -9,7 +9,10 @@ use glium::{
     Frame, Surface,
 };
 use log::info;
-use palette::{rgb::Rgb, Alpha, FromColor, GammaSrgba, Hsv, RgbHue};
+use palette::{
+    convert::FromColorUnclamped, rgb::Rgb, Alpha, FromColor, GammaSrgb, GammaSrgba, Hsv, Hsva,
+    IntoColor, RgbHue, Srgb, Srgba,
+};
 use rand::Rng;
 use std::{borrow::Cow, cmp, time::Instant, u8};
 use unicode_normalization::UnicodeNormalization;
@@ -22,7 +25,7 @@ pub struct Vertex {
 
 pub struct Poem {
     pub created: Instant,
-    pub color: GammaSrgba,
+    pub color: Srgba,
     texture: Texture2d,
     x: u16,
     y: u16,
@@ -63,7 +66,7 @@ impl Poem {
                 if (pos + 1) * char_size.0 > pixel_w {
                     break;
                 }
-                if let Some(ref glyph) = glyphs.get(&ch) {
+                if let Some(glyph) = glyphs.get(&ch) {
                     let bounds = glyph.bounds();
                     for ((gx, gy), value) in glyph.pixels() {
                         if value {
@@ -100,12 +103,15 @@ impl Poem {
 
         Poem {
             created: Instant::now(),
-            color: Hsv::new(
-                RgbHue::from_degrees(rand.gen_range(0..36000) as f32 / 100.0),
-                1.0,
-                1.0,
-            )
-            .into(),
+            color: Alpha {
+                color: Hsv::new(
+                    RgbHue::from_degrees(rand.gen_range(0..36000) as f32 / 100.0),
+                    1.0,
+                    1.0,
+                )
+                .into_color(),
+                alpha: 1.0,
+            },
             texture,
             x: real_w as u16 + rand.gen_range(0..(window_size.width as usize - real_w)) as u16,
             y: real_h as u16 + rand.gen_range(0..(window_size.height as usize - real_h)) as u16,
@@ -116,7 +122,7 @@ impl Poem {
 
     pub fn render_all(
         display: &Display,
-        poems: &Vec<Poem>,
+        poems: &[Poem],
         vertex_buffer: &glium::VertexBuffer<Vertex>,
         index_buffer: &glium::IndexBuffer<u16>,
         program: &glium::Program,
@@ -129,9 +135,9 @@ impl Poem {
             poem.render(
                 &mut target,
                 &(size.width as u32, size.height as u32),
-                &vertex_buffer,
-                &index_buffer,
-                &program,
+                vertex_buffer,
+                index_buffer,
+                program,
             );
         }
         target.finish().unwrap();

@@ -19,7 +19,7 @@ impl AudioFFT {
         }
     }
 
-    pub fn process(&mut self, data: &Vec<f32>) -> Vec<f32> {
+    pub fn process(&mut self, data: &[f32]) -> Vec<f32> {
         assert!(data.len() == self.size);
         let mut buffer: Vec<Complex<f32>> =
             data.iter().map(|x| Complex::<f32>::new(*x, 0.)).collect();

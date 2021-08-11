@@ -1,3 +1,4 @@
+#![allow(clippy::wrong_self_convention)]
 use glium::backend::glutin::Display;
 use log::{error, info};
 use std::{process::Command, time::Duration};
@@ -33,25 +34,39 @@ impl StateMachine {
     fn exit_transition(&mut self, next: &State) {
         match next {
             State::Off => {
-                frontpanel::set_relay(false).unwrap_or_else(|err| { error!("{}", err); });
-                frontpanel::write_display("Blinkenwall     Off").unwrap_or_else(|err| { error!("{}", err); });
-            },
+                frontpanel::set_relay(false).unwrap_or_else(|err| {
+                    error!("{}", err);
+                });
+                frontpanel::write_display("Blinkenwall     Off").unwrap_or_else(|err| {
+                    error!("{}", err);
+                });
+            }
             State::ShaderToy { shader_toy: _ } => {
-                frontpanel::write_display("Blinkenwall     ShaderToy").unwrap_or_else(|err| { error!("{}", err); });
-            },
+                frontpanel::write_display("Blinkenwall     ShaderToy").unwrap_or_else(|err| {
+                    error!("{}", err);
+                });
+            }
             State::Video { video: _ } => {
-                frontpanel::write_display("Blinkenwall     YouTube").unwrap_or_else(|err| { error!("{}", err); });
-            },
+                frontpanel::write_display("Blinkenwall     YouTube").unwrap_or_else(|err| {
+                    error!("{}", err);
+                });
+            }
             State::Poetry { poetry: _ } => {
-                frontpanel::write_display("Blinkenwall     Poetry").unwrap_or_else(|err| { error!("{}", err); });
-            },
+                frontpanel::write_display("Blinkenwall     Poetry").unwrap_or_else(|err| {
+                    error!("{}", err);
+                });
+            }
             State::Tox => {
-                frontpanel::write_display("Blinkenwall     Tox").unwrap_or_else(|err| { error!("{}", err); });
-            },
+                frontpanel::write_display("Blinkenwall     Tox").unwrap_or_else(|err| {
+                    error!("{}", err);
+                });
+            }
             State::ToxMessage { poetry: _ } => {
-                frontpanel::write_display("Blinkenwall     Tox Messages").unwrap_or_else(|err| { error!("{}", err); });
-            },
-            _ => {},
+                frontpanel::write_display("Blinkenwall     Tox Messages").unwrap_or_else(|err| {
+                    error!("{}", err);
+                });
+            }
+            _ => {}
         }
         match self.state {
             State::Off => {
@@ -77,7 +92,7 @@ impl StateMachine {
             State::Tox => {
                 info!("Exit Tox state");
                 match next {
-                    &State::ToxMessage { ref poetry } => {}
+                    State::ToxMessage { ref poetry } => {}
                     _ => {
                         #[cfg(target_os = "linux")]
                         Command::new("/usr/bin/sudo")

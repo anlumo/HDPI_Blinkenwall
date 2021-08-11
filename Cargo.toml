@@ -7,9 +7,9 @@ edition = "2018"
 [dependencies]
 log = "0.4"
 syn = "1.0"
-env_logger = "0.8"
-glium = { version = "0.29", features = ["glutin"] }
-glutin = "0.26"
+env_logger = "0.9"
+glium = { version = "0.30", features = ["glutin"] }
+glutin = "0.27"
 chrono = "0.4"
 ws = "0.9"
 serde = { version = "1.0", features = ["derive"] }
@@ -19,8 +19,8 @@ git2 = "0.13"
 uuid = { version = "0.8", features = ["v4"] }
 portaudio = "0.7"
 rustfft = "6.0"
-bdf = "0.6"
-palette = "0.5"
+bdf = { git = "https://github.com/meh/rust-bdf.git", rev = "2eceb6634bf4932cc877a69d574c86994c0cf883" }
+palette = "0.6"
 rand = "0.8"
 rand_xoshiro = "0.6"
 unicode-normalization = "0.1"

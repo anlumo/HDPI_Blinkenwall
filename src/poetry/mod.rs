@@ -97,12 +97,8 @@ impl Poetry {
     }
 
     pub fn show_poem(&mut self, display: &Display, text: &str) {
-        self.poems.push(render::Poem::new(
-            &display,
-            &self.font,
-            text,
-            &mut self.rand,
-        ));
+        self.poems
+            .push(render::Poem::new(display, &self.font, text, &mut self.rand));
     }
 
     pub fn step(&mut self, display: &Display) {
@@ -118,7 +114,7 @@ impl Poetry {
         }
 
         render::Poem::render_all(
-            &display,
+            display,
             &self.poems,
             &self.vertex_buffer,
             &self.index_buffer,

@@ -22,14 +22,14 @@ impl Database {
             Err(error) => Err(error),
             Ok(branches) => Ok(branches
                 .filter(|opt| match opt {
-                    &Ok((ref branch, _)) => match branch.name() {
+                    Ok((ref branch, _)) => match branch.name() {
                         Ok(optname) => match optname {
                             Some(name) => name.starts_with(BRANCH_PREFIX),
                             None => false,
                         },
                         Err(_) => false,
                     },
-                    &Err(_) => false,
+                    Err(_) => false,
                 })
                 .map(|r| {
                     String::from(
@@ -120,11 +120,11 @@ impl Database {
         match parent {
             Some(parent) => {
                 self.repository
-                    .commit(None, &signature, &signature, message, &tree, &[&parent])
+                    .commit(None, &signature, &signature, message, tree, &[parent])
             }
             None => self
                 .repository
-                .commit(None, &signature, &signature, message, &tree, &[]),
+                .commit(None, &signature, &signature, message, tree, &[]),
         }
     }
 
@@ -156,13 +156,13 @@ impl Database {
         treebuilder
             .insert("metadata.json", meta_oid, 0o100644)
             .unwrap();
-        self.commit_treebuilder(branch, &treebuilder, &message)
+        self.commit_treebuilder(branch, &treebuilder, message)
     }
 
     pub fn add(&self, data: &ShaderData, message: &str) -> Result<(String, String), Error> {
         let uuid = format!("{}", uuid::Uuid::new_v4().to_hyphenated());
 
-        let commit_oid = self.create_commit(None, &data, &message)?;
+        let commit_oid = self.create_commit(None, data, message)?;
         let commit = self.repository.find_commit(commit_oid)?;
         self.repository
             .branch(&vec![BRANCH_PREFIX, &uuid].join(""), &commit, true)?;
@@ -184,7 +184,7 @@ impl Database {
             return Err(Error::from_str("Shader was modified concurrently."));
         }
 
-        let commit_oid = self.create_commit(Some(branch), &data, &message)?;
+        let commit_oid = self.create_commit(Some(branch), data, message)?;
         Ok(format!("{}", commit_oid))
     }
 
