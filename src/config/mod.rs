@@ -1,4 +1,4 @@
-use serde_json;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
@@ -37,10 +37,10 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Config, Box<Error>> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Config, Box<dyn Error>> {
         let file = File::open(path)?;
 
-        let u : Config = serde_json::from_reader(file)?;
+        let u: Config = serde_json::from_reader(file)?;
         Ok(u)
     }
 }

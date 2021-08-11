@@ -19,3 +19,6 @@ blinkenwall/coverage/*
 blinkenwall/libpeerconnection.log
 npm-debug.log*
 testem.log
+
+/shadertoy.git
+*.log
