@@ -1,14 +1,15 @@
-import Ember from 'ember';
+import { inject as service } from '@ember/service';
+import Controller from '@ember/controller';
 
-export default Ember.Controller.extend({
+export default Controller.extend({
   text: "",
-  serverConnection: Ember.inject.service(),
+  serverConnection: service(),
 
   actions: {
     showText() {
-      this.get('serverConnection').send({
+      this.serverConnection.send({
         cmd: "show poetry",
-        text: this.get('text'),
+        text: this.text,
       });
     },
   }

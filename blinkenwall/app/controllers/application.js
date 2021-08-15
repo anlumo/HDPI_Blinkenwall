@@ -1,16 +1,18 @@
-import Ember from 'ember';
+import $ from 'jquery';
+import { inject as service } from '@ember/service';
+import Controller from '@ember/controller';
 
-export default Ember.Controller.extend({
-  serverConnection: Ember.inject.service(),
+export default Controller.extend({
+  serverConnection: service(),
   actions: {
     showSidebar(sidebar) {
-      Ember.$(`#${sidebar}`).sidebar('show');
+      $(`#${sidebar}`).sidebar('show');
     },
     hideSidebar(sidebar) {
-      Ember.$(`#${sidebar}`).sidebar('hide');
+      $(`#${sidebar}`).sidebar('hide');
     },
     stop() {
-      this.get('serverConnection').send({
+      this.serverConnection.send({
         cmd: "turnoff"
       });
     },

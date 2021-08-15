@@ -1,6 +1,8 @@
-import Ember from 'ember';
+import { later } from '@ember/runloop';
+import $ from 'jquery';
+import Service from '@ember/service';
 
-export default Ember.Service.extend({
+export default Service.extend({
   port: 1337,
   ws: null,
   index: 1,
@@ -13,25 +15,25 @@ export default Ember.Service.extend({
   },
 
   send(message, cb) {
-    let index = "" + this.get('index');
+    let index = "" + this.index;
     if(cb) {
       this.callbacks[index] = cb;
     }
-    let msg = Ember.$.extend({ req: index }, message);
-    let ws = this.get('ws');
+    let msg = $.extend({ req: index }, message);
+    let ws = this.ws;
     if(ws && ws.readyState === 1) {
       console.log("Sending websocket message", msg);
-      this.get('ws').send(JSON.stringify(msg));
+      this.ws.send(JSON.stringify(msg));
     } else {
-      this.get('messageQueue').push(msg);
+      this.messageQueue.push(msg);
     }
     this.incrementProperty('index');
   },
 
   onOpen() {
     console.log("Websocket connection opened.");
-    let ws = this.get('ws');
-    this.get('messageQueue').forEach((msg) => {
+    let ws = this.ws;
+    this.messageQueue.forEach((msg) => {
       ws.send(JSON.stringify(msg));
     });
     this.set('messageQueue', []);
@@ -51,16 +53,16 @@ export default Ember.Service.extend({
   },
 
   onClose() {
-    if(this.get('ws')) {
+    if(this.ws) {
       console.log("Websocket closed, trying to reconnect in 2s...");
       this.set('ws', null);
-      Ember.run.later(this, "reconnect", 2000);
+      later(this, "reconnect", 2000);
     }
   },
 
   reconnect() {
     console.log("Connecting to websocket...");
-    let ws = new WebSocket(`ws://${document.location.hostname}:${this.get('port')}/blinkenwall`);
+    let ws = new WebSocket(`ws://${document.location.hostname}:${this.port}/blinkenwall`);
     ws.onopen = this.onOpen.bind(this);
     ws.onmessage = this.onMessage.bind(this);
     ws.onerror = this.onClose.bind(this);

@@ -1,6 +1,6 @@
 <h2 class="ui header">Highlights</h2>
 <div class="ui five column grid">
   {{#each highlights as |shader|}}
-    {{shadertoy-preview class="column" shader=shader}}
+    <ShadertoyPreview @class="column" @shader={{shader}} />
   {{/each}}
 </div>

@@ -7,7 +7,7 @@
     <li><span class="code">int iFrame</span>: number of rendered frames for this shader</li>
   </ul>
 </div>
-{{ember-ace lines=40 value=editorSource update=(action 'valueUpdated') mode="ace/mode/glsl"}}
+<EmberAce @lines={{40}} @value={{editorSource}} @update={{action "valueUpdated"}} @mode="ace/mode/glsl" />
 <div class="ui text menu">
   <div class="item">
     <button class="ui primary icon button" title="Compile" {{action 'compile'}}><i class="play icon"></i></button>

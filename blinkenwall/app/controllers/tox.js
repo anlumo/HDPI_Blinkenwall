@@ -1,8 +1,9 @@
-import Ember from 'ember';
+import { inject as service } from '@ember/service';
+import Controller from '@ember/controller';
 
-export default Ember.Controller.extend({
+export default Controller.extend({
   toxid: "",
-  serverConnection: Ember.inject.service(),
+  serverConnection: service(),
 
   init() {
     this._super(...arguments);
@@ -14,7 +15,7 @@ export default Ember.Controller.extend({
 
   actions: {
     start() {
-      this.get('serverConnection').send({
+      this.serverConnection.send({
         cmd: "tox start",
       });
     },

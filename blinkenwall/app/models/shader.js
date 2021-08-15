@@ -1,5 +1,5 @@
-import DS from 'ember-data';
+import Model, { belongsTo } from '@ember-data/model';
 
-export default DS.Model.extend({
-  content: DS.belongsTo('shader-content')
+export default Model.extend({
+  content: belongsTo('shader-content')
 });

@@ -1,11 +1,11 @@
 <h2 class="ui header"><i class="record icon"></i> Currently Active Animation</h2>
 <div class="ui grid">
   <div class="six wide column">
-    {{shader-preview source=activeShader.source}}
+    <ShaderPreview @source={{activeShader.source}} />
   </div>
   <div class="nine wide column">
     <h3 class="ui header">{{activeShader.title}}</h3>
     {{activeShader.description}}
   </div>
 </div>
-{{shadertoy-all}}
+<ShadertoyAll />

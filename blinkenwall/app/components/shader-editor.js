@@ -1,12 +1,13 @@
-import Ember from 'ember';
+import { inject as service } from '@ember/service';
+import Component from '@ember/component';
 
-export default Ember.Component.extend({
-  store: Ember.inject.service(),
+export default Component.extend({
+  store: service(),
   editorSource: "",
   shader: null,
 
   didInsertElement() {
-    let shader = this.get('shader');
+    let shader = this.shader;
     let source = shader.get('source');
     this.set('editorSource', source);
     this.sendAction('compile', source);
@@ -15,10 +16,10 @@ export default Ember.Component.extend({
   actions: {
     valueUpdated(newValue) {
       this.set('editorSource', newValue);
-      this.get('shader').set('source', this.get('editorSource'));
+      this.shader.set('source', this.editorSource);
     },
     compile() {
-      this.get('shader').set('source', this.get('editorSource'));
+      this.shader.set('source', this.editorSource);
       this.sendAction('compile', this.get('shader.source'));
     },
     maximize() {

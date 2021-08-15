@@ -1,44 +1,46 @@
-import Ember from 'ember';
-import DS from 'ember-data';
+import Adapter from '@ember-data/adapter';
+import { run } from '@ember/runloop';
+import { Promise } from 'rsvp';
+import { inject as service } from '@ember/service';
 import jQuery from 'jquery';
 
-export default DS.Adapter.extend({
-  serverConnection: Ember.inject.service(),
+export default Adapter.extend({
+  serverConnection: service(),
 
   createRecord(store /*jshint unused:false*/, type, snapshot) {
     var data = this.serialize(snapshot, {includeId: false});
     switch(type.modelName) {
       case "shader-content":
-        return new Ember.RSVP.Promise((resolve, reject) => {
-          this.get('serverConnection').send(jQuery.extend({
+        return new Promise((resolve, reject) => {
+          this.serverConnection.send(jQuery.extend({
             cmd: "shader create",
           }, data), (response) => {
             if(response.id) {
               data.id = response.id;
               data.commit = response.commit;
-              Ember.run(null, resolve, data);
+              run(null, resolve, data);
             } else {
-              Ember.run(null, reject, data);
+              run(null, reject, data);
             }
           });
         });
       case "shader":
-        return new Ember.RSVP.Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
           if(data.content) {
-            Ember.run(null, resolve, {
+            run(null, resolve, {
               id: data.content,
               content: data.content
             });
           } else {
-            Ember.run(null, reject, "Cannot create a shader without content");
+            run(null, reject, "Cannot create a shader without content");
           }
         });
     }
   },
 
   deleteRecord(store /*jshint unused:false*/, type /*jshint unused:false*/, snapshot) {
-    return new Ember.RSVP.Promise((resolve, reject) => {
-      Ember.run(null, reject, "Not implemented yet: " + snapshot);
+    return new Promise((resolve, reject) => {
+      run(null, reject, "Not implemented yet: " + snapshot);
     });
   },
 
@@ -46,14 +48,14 @@ export default DS.Adapter.extend({
     if(type.modelName !== "shader") {
       return null;
     }
-    return new Ember.RSVP.Promise((resolve, reject) => {
-      this.get('serverConnection').send({
+    return new Promise((resolve, reject) => {
+      this.serverConnection.send({
         cmd: "shader list"
       }, (response) => {
         if(response.ids) {
-          Ember.run(null, resolve, response.ids.map((id) => { return {id: id, type: "shader", content: id}; }));
+          run(null, resolve, response.ids.map((id) => { return {id: id, type: "shader", content: id}; }));
         } else {
-          Ember.run(null, reject, response);
+          run(null, reject, response);
         }
       });
     });
@@ -62,20 +64,20 @@ export default DS.Adapter.extend({
   findRecord(store /*jshint unused:false*/, type, id) {
     switch(type.modelName) {
       case "shader":
-        return new Ember.RSVP.Promise((resolve) => {
-          Ember.run(null, resolve, {
+        return new Promise((resolve) => {
+          run(null, resolve, {
             id: id,
             content: id
           });
         });
       case "shader-content":
-        return new Ember.RSVP.Promise((resolve, reject) => {
-          this.get('serverConnection').send({
+        return new Promise((resolve, reject) => {
+          this.serverConnection.send({
             cmd: "shader read",
             id: id
           }, (response) => {
             if(response.source) {
-              Ember.run(null, resolve, {
+              run(null, resolve, {
                 id: id,
                 title: response.title,
                 description: response.description,
@@ -83,7 +85,7 @@ export default DS.Adapter.extend({
                 commit: response.commit,
               });
             } else {
-              Ember.run(null, reject, response);
+              run(null, reject, response);
             }
           });
         });
@@ -92,8 +94,8 @@ export default DS.Adapter.extend({
 
   query(store, type, query) { // jshint unused:false
     // not implemented yet on the server!
-    return new Ember.RSVP.Promise((resolve, reject) => {
-      Ember.run(null, reject, "Not implemented yet");
+    return new Promise((resolve, reject) => {
+      run(null, reject, "Not implemented yet");
     });
   },
 
@@ -101,26 +103,26 @@ export default DS.Adapter.extend({
     var data = this.serialize(snapshot, {includeId: true});
     switch(type.modelName) {
       case "shader-content":
-        return new Ember.RSVP.Promise((resolve, reject) => {
-          this.get('serverConnection').send(jQuery.extend({
+        return new Promise((resolve, reject) => {
+          this.serverConnection.send(jQuery.extend({
             cmd: "shader write"
           }, data), (response) => {
             if(response.id) {
-              Ember.run(null, resolve, data);
+              run(null, resolve, data);
             } else {
-              Ember.run(null, reject, data);
+              run(null, reject, data);
             }
           });
         });
       case "shader":
-        return new Ember.RSVP.Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
           if(data.content) {
-            Ember.run(null, resolve, {
+            run(null, resolve, {
               id: data.content,
               content: data.content
             });
           } else {
-            Ember.run(null, reject, "Cannot create a shader without content");
+            run(null, reject, "Cannot create a shader without content");
           }
         });
     }

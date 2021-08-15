@@ -3,21 +3,21 @@
     <h1 class="ui header">ShaderToy</h1>
   </div>
   <div class="right floated right aligned">
-    {{#link-to 'shadertoy' tagName='button' class="ui button"}}
+    <LinkTo @route="shadertoy" @tagName="button" class="ui button">
       Highlights
-    {{/link-to}}
-    {{#link-to 'shadertoy.all' tagName='button' class="ui button"}}
+    </LinkTo>
+    <LinkTo @route="shadertoy.all" @tagName="button" class="ui button">
       Browse
-    {{/link-to}}
+    </LinkTo>
   </div>
   <div class="right floated right aligned">
-    {{#link-to 'shadertoy.edit' "new" tagName='button' class="ui icon button"}}
+    <LinkTo @route="shadertoy.edit" @model="new" @tagName="button" class="ui icon button">
       <i class="plus icon"></i>
-    {{/link-to}}
+    </LinkTo>
   </div>
   <div class="right floated right aligned">
     <div class="ui search">
-      {{input class="prompt" type="text" placeholder="Search"}}
+      <Input class="prompt" @type="text" placeholder="Search" />
       <div class="results"></div>
     </div>
   </div>

@@ -1,8 +1,9 @@
-import Ember from 'ember';
+import { inject as service } from '@ember/service';
+import Component from '@ember/component';
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['ui', 'segment'],
-  store: Ember.inject.service(),
+  store: service(),
 
   count: 5,
   highlights: [],
@@ -19,10 +20,10 @@ export default Ember.Component.extend({
   },
 
   didInsertElement() {
-    this.get('store').findAll('shader').then((shaders) => {
+    this.store.findAll('shader').then((shaders) => {
       let list = shaders.toArray();
       this.shuffle(list);
-      this.set('highlights', list.slice(0, this.get('count')));
+      this.set('highlights', list.slice(0, this.count));
     });
   }
 });

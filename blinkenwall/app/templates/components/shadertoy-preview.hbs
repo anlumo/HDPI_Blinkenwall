@@ -1,4 +1,4 @@
-{{#link-to 'shadertoy.edit' shader.id class="ui medium image shadertoy-preview"}}
+<LinkTo @route="shadertoy.edit" @model={{shader.id}} class="ui medium image shadertoy-preview">
   <img class="ui rounded image" src="https://semantic-ui.com/images/wireframe/image-text.png">
   <div class="title">{{shader.content.title}}</div>
-{{/link-to}}
+</LinkTo>

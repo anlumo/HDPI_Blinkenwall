@@ -1,23 +1,26 @@
-import Ember from 'ember';
+import { once } from '@ember/runloop';
+import { computed } from '@ember/object';
+import { inject as service } from '@ember/service';
+import Controller from '@ember/controller';
 
-export default Ember.Controller.extend({
-  serverConnection: Ember.inject.service(),
+export default Controller.extend({
+  serverConnection: service(),
 
-  isNew: Ember.computed('model.id', function() {
+  isNew: computed('model.id', function() {
     return this.get('model.id') == null;
   }),
 
   actions: {
     compile(source) {
-      Ember.run.once(() => {
+      once(() => {
         this.set('source', source);
       });
     },
     publish() {
-      this.get('model').save();
+      this.model.save();
     },
     activate() {
-      this.get('serverConnection').send({
+      this.serverConnection.send({
         cmd: "shader activate",
         id: this.get('model.id')
       });

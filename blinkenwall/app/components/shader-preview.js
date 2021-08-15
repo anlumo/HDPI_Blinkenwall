@@ -1,4 +1,6 @@
-import Ember from 'ember';
+import { scheduleOnce } from '@ember/runloop';
+import { computed, observer } from '@ember/object';
+import Component from '@ember/component';
 
 const VERTICES = new Float32Array([
   -1, -1, 0, 0,
@@ -51,7 +53,7 @@ const UNIFORM_NAMES = [
   'iFrame',
 ];
 
-export default Ember.Component.extend({
+export default Component.extend({
   tagName: 'canvas',
   classNames: ['preview'],
   source: "",
@@ -63,8 +65,8 @@ export default Ember.Component.extend({
     this.animate = this._animate.bind(this);
   },
 
-  gl: Ember.computed('element', function() {
-    let canvas = this.get('element');
+  gl: computed('element', function() {
+    let canvas = this.element;
     var context;
 
     if (canvas) {
@@ -74,12 +76,12 @@ export default Ember.Component.extend({
     return context;
   }),
 
-  program: Ember.computed('gl', 'source', function() {
+  program: computed('gl', 'source', function() {
     try {
       return this.programFromCompiledShadersAndUniformNames(
-        this.get('gl'),
+        this.gl,
         VERTEX_SHADER,
-        FRAGMENT_SHADER_PREAMBLE + this.get('source'),
+        FRAGMENT_SHADER_PREAMBLE + this.source,
         UNIFORM_NAMES
       );
     } catch(e) {
@@ -89,7 +91,7 @@ export default Ember.Component.extend({
   }),
 
   didInsertElement() {
-    Ember.run.scheduleOnce('afterRender', () => {
+    scheduleOnce('afterRender', () => {
       this.configureGl();
       window.requestAnimationFrame(this.animate);
     });
@@ -99,8 +101,8 @@ export default Ember.Component.extend({
   },
 
   configureGl() {
-    let gl = this.get('gl');
-    let program = this.get('program');
+    let gl = this.gl;
+    let program = this.program;
     if (program) {
       gl.useProgram(program);
 
@@ -111,7 +113,7 @@ export default Ember.Component.extend({
   },
 
   resizeCanvas() {
-    let gl = this.get('gl');
+    let gl = this.gl;
     let canvas = gl.canvas;
 
     if (canvas.clientWidth === canvas.width * 2 &&
@@ -125,22 +127,22 @@ export default Ember.Component.extend({
     gl.viewport(0, 0, canvas.width, canvas.height);
   },
 
-  programChanged: Ember.observer('program', function() {
-    Ember.run.scheduleOnce('afterRender', () => {
+  programChanged: observer('program', function() {
+    scheduleOnce('afterRender', () => {
       this.configureGl();
     });
   }),
 
   configureUniforms(gl, program) {
     let canvas = gl.canvas;
-    let time = (Date.now() - this.get('startRenderTimestamp')) / 1000;
+    let time = (Date.now() - this.startRenderTimestamp) / 1000;
 
     gl.uniform1f(program.uniformsCache['iGlobalTime'], time);
     gl.uniform1f(program.uniformsCache['iTime'], time);
     gl.uniform3fv(program.uniformsCache['iResolution'], [canvas.width, canvas.height, 1]);
     gl.uniform4fv(program.uniformsCache['iMouse'], [0, 0, 0, 0]);
     gl.uniform4fv(program.uniformsCache['iDate'], [0,0,0,0]);
-    gl.uniform1i(program.uniformsCache['iFrame'], this.get('frameIndex'));
+    gl.uniform1i(program.uniformsCache['iFrame'], this.frameIndex);
   },
 
   configureVertices(gl, program, vertices) {
@@ -157,7 +159,7 @@ export default Ember.Component.extend({
   },
 
   clearGl() {
-    let gl = this.get('gl');
+    let gl = this.gl;
     gl.disable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
@@ -167,10 +169,10 @@ export default Ember.Component.extend({
   },
 
   draw() {
-    let gl = this.get('gl');
+    let gl = this.gl;
     this.resizeCanvas();
     this.clearGl();
-    let program = this.get('program');
+    let program = this.program;
     if(program) {
       this.configureUniforms(gl, program);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, NUM_VERTICES);
@@ -179,7 +181,7 @@ export default Ember.Component.extend({
   },
 
   _animate() {
-    let gl = this.get('gl');
+    let gl = this.gl;
     if (!gl) { return; }
 
     if (this.animate) {

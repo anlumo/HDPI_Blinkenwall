@@ -1,19 +1,20 @@
-import Ember from 'ember';
+import { inject as service } from '@ember/service';
+import Controller from '@ember/controller';
 
-export default Ember.Controller.extend({
+export default Controller.extend({
   url: "",
-  serverConnection: Ember.inject.service(),
+  serverConnection: service(),
 
   actions: {
     playVideo() {
-      console.log("Play video", this.get('url'));
-      this.get('serverConnection').send({
+      console.log("Play video", this.url);
+      this.serverConnection.send({
         cmd: "video play",
-        url: this.get('url'),
+        url: this.url,
       });
     },
     stopVideo() {
-      this.get('serverConnection').send({
+      this.serverConnection.send({
         cmd: "turnoff"
       });
     }

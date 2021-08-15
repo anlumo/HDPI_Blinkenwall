@@ -1,14 +1,16 @@
-import Ember from 'ember';
+import { Promise } from 'rsvp';
+import { inject as service } from '@ember/service';
+import Component from '@ember/component';
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['ui', 'segment'],
-  store: Ember.inject.service(),
+  store: service(),
 
   shaders: [],
 
   didInsertElement() {
-    this.get('store').findAll('shader').then((shaders) => {
-      Ember.RSVP.Promise.all(shaders.map((s) => { return s.get('content'); } )).then(() => {
+    this.store.findAll('shader').then((shaders) => {
+      Promise.all(shaders.map((s) => { return s.get('content'); } )).then(() => {
         let list = shaders.toArray().sort((a, b) => {
           let nameA = a.get('content.title'), nameB = b.get('content.title');
           console.log(`a = ${nameA}, b = ${nameB}`);
