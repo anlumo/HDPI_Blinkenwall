@@ -1,15 +1,16 @@
-<<<<<<< HEAD
 <div class="ui fixed inverted menu">
   <div class="ui container">
-    {{#link-to 'index' class="header item"}}<i class="film icon"></i> Blinkenwall{{/link-to}}
-    {{#link-to 'shadertoy' class="item"}}ShaderToy{{/link-to}}
-    {{#link-to 'youtube' class="item"}}YouTube{{/link-to}}
-    {{#link-to 'tox' class="item"}}Tox{{/link-to}}
-    {{#link-to 'poetry' class="item"}}Poetry{{/link-to}}
-    {{#link-to 'emulator' class="item"}}Emulator{{/link-to}}
-    {{#link-to 'vnc' class="item"}}VNC{{/link-to}}
-    {{#link-to 'retro' class="item"}}Retro{{/link-to}}
-    <div class="vcenter"><button class="ui right floated red inverted mini button" {{action 'stop'}}>Stop</button></div>
+    <LinkTo @route='index' class="header item"><i class="film icon"></i> Blinkenwall</LinkTo>
+    <LinkTo @route='shadertoy' class="item">ShaderToy</LinkTo>
+    <LinkTo @route='youtube' class="item">YouTube</LinkTo>
+    <LinkTo @route='tox' class="item">Tox</LinkTo>
+    <LinkTo @route='poetry' class="item">Poetry</LinkTo>
+    <LinkTo @route='emulator' class="item">Emulator</LinkTo>
+    <LinkTo @route='vnc' class="item">VNC</LinkTo>
+    <LinkTo @route='retro' class="item">Retro</LinkTo>
+    <div class="vcenter"><button type="button" class="ui right floated red inverted mini button" {{on 'click'
+        (action 'stop' ) }}>Stop</button>
+    </div>
   </div>
 </div>
 <div class="ui main text">
@@ -18,14 +19,5 @@
 <div class="ui inverted vertical footer segment">
   <div class="ui center aligned container">
     Copyright blah
-  </div/>
+  </div />
 </div>
-=======
-{{page-title "Blinkenwall"}}
-
-{{!-- The following component displays Ember's default welcome message. --}}
-<WelcomePage />
-{{!-- Feel free to remove this! --}}
-
-{{outlet}}
->>>>>>> 3adf45e (v2.11.1...v3.27.0)

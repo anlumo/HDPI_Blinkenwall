@@ -5,7 +5,7 @@
 </div>
 <div class="ui segment">
   <p>
-    <button class="ui primary icon button" {{action "start"}}>Start</button>
+    <button class="ui primary icon button" {{on 'click' (action "start" )}}>Start</button>
   </p>
   <div class="ui circular segment">
     <p>
@@ -14,6 +14,6 @@
   </div>
   <h2 class="ui header">Tox ID:</h2>
   <div class="ui raised segment">
-    <p>{{toxid}}</p>
+    <p>{{this.toxid}}</p>
   </div>
 </div>

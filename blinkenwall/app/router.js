@@ -20,5 +20,3 @@ Router.map(function() {
   this.route('tox');
   this.route('poetry');
 });
-
-export default Router;

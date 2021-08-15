@@ -7,17 +7,19 @@
     <li><span class="code">int iFrame</span>: number of rendered frames for this shader</li>
   </ul>
 </div>
-<EmberAce @lines={{40}} @value={{editorSource}} @update={{action "valueUpdated"}} @mode="ace/mode/glsl" />
+<EmberAce @lines={{40}} @value={{this.editorSource}} @update={{action "valueUpdated" }} @mode="ace/mode/glsl" />
 <div class="ui text menu">
   <div class="item">
-    <button class="ui primary icon button" title="Compile" {{action 'compile'}}><i class="play icon"></i></button>
+    <button class="ui primary icon button" title="Compile" {{on 'click' (action 'compile' )}}><i
+        class="play icon"></i></button>
   </div>
   <div class="right menu">
     <div class="item">
-      <div class="ui icon button" title="Maximize" {{action 'maximize'}}><i class="maximize icon"></i></div>
+      <div class="ui icon button" title="Maximize" {{on 'click' (action 'maximize' )}}><i class="maximize icon"></i>
+      </div>
     </div>
     <div class="item">
-      <div class="ui icon button" title="Help" {{action 'help'}}><i class="help icon"></i></div>
+      <div class="ui icon button" title="Help" {{on 'click' (action 'help' )}}><i class="help icon"></i></div>
     </div>
   </div>
 </div>
