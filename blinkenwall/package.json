@@ -69,7 +69,5 @@
   "ember": {
     "edition": "octane"
   },
-  "dependencies": {
-    "semantic-ui": "^2.4.2"
-  }
+  "dependencies": {}
 }
