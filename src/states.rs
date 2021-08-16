@@ -1,10 +1,16 @@
 #![allow(clippy::wrong_self_convention)]
 use glium::backend::glutin::Display;
+use libmpv::events::{Event, PropertyData};
 use log::{error, info};
 use std::{process::Command, time::Duration};
-use libmpv::events::Event;
 
-use crate::{config::Config, frontpanel::{LedControl, Led}, poetry::Poetry, shadertoy::ShaderToy, video::Video};
+use crate::{
+    config::Config,
+    frontpanel::{Led, LedControl},
+    poetry::Poetry,
+    shadertoy::ShaderToy,
+    video::Video,
+};
 
 pub enum State {
     Off,
@@ -259,12 +265,19 @@ impl StateMachine {
                 match video.step(&self.display) {
                     None => {}
                     Some(evt) => {
-                        if let Event::EndFile(_) = evt {
-                            self.to_off();
+                        if let Event::PropertyChange {
+                            name: "idle-active",
+                            change: PropertyData::Flag(idle),
+                            ..
+                        } = evt
+                        {
+                            if idle {
+                                self.to_off();
+                            }
                         } else {
                             info!("MPV event: {:?}", evt);
                         }
-                    },
+                    }
                 };
             }
             State::Emulator => {}
