@@ -1,5 +1,5 @@
-use spidev::{Spidev, SpidevOptions, SpiModeFlags};
 use gpio_cdev::LineHandle;
+use spidev::{SpiModeFlags, Spidev, SpidevOptions};
 use std::{io, io::Write, time::Duration};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -27,10 +27,10 @@ impl LedControl {
     pub fn new(rck: LineHandle, wrench: LineHandle) -> io::Result<Self> {
         let mut spi = Spidev::open("/dev/spidev2.0")?;
         let options = SpidevOptions::new()
-                .bits_per_word(8)
-                .max_speed_hz(10_000_000)
-                .mode(SpiModeFlags::SPI_MODE_0)
-                .build();
+            .bits_per_word(8)
+            .max_speed_hz(10_000_000)
+            .mode(SpiModeFlags::SPI_MODE_0)
+            .build();
         spi.configure(&options)?;
         Ok(Self {
             state: 0,
@@ -42,7 +42,7 @@ impl LedControl {
 
     fn write_leds(&mut self) -> Result<(), gpio_cdev::Error> {
         log::info!("Setting leds to {:08b}", self.state);
-        self.spi.write(&[self.state])?;
+        self.spi.write_all(&[self.state])?;
         std::thread::sleep(Duration::from_millis(1));
         self.rck.set_value(1)?;
         std::thread::sleep(Duration::from_millis(1));
