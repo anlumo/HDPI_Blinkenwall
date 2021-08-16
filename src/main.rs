@@ -3,18 +3,22 @@
 
 use glium::glutin;
 use log::{error, info};
-use std::process;
-use std::process::Command;
-use std::sync::mpsc;
+use std::{process, process::Command, sync::mpsc};
+use gpio_cdev::{LineRequestFlags, Chip, LineHandle};
 
 mod config;
 mod database;
 mod frontpanel;
+use frontpanel::LedControl;
 mod poetry;
 mod server;
 mod shadertoy;
 mod states;
 mod video;
+
+const RCK: u32 = 13;
+const CLR: u32 = 19;
+const WRENCH: u32 = 12;
 
 fn handle_message(
     cmd: &server::Command,
@@ -81,14 +85,6 @@ fn handle_message(
 }
 
 fn main() {
-    // just in case
-    #[cfg(target_os = "linux")]
-    Command::new("/usr/bin/sudo")
-        .arg("/bin/chvt")
-        .arg("1")
-        .output()
-        .expect("failed to execute process");
-
     let config = match config::Config::new("blinkenwall.json") {
         Err(err) => {
             env_logger::init();
@@ -121,7 +117,32 @@ fn main() {
     let (server_thread, command_receiver) =
         server::open_server(&config.server.address, config.server.port);
 
-    let mut state_machine = states::StateMachine::new(display, config);
+    let (wrench, rck) = match Chip::new("/dev/gpiochip4") {
+        Ok(mut chip) => {
+            log::debug!("Chip = {:?}", chip);
+            // the clear line has to be held high, otherwise the chip doesn't do anything
+            chip.get_line(CLR).and_then(|line|
+                line.request(LineRequestFlags::OUTPUT, 1, "frontpanel")).ok();
+            (
+                chip.get_line(WRENCH).and_then(|line|
+                    line.request(LineRequestFlags::OUTPUT, 0, "blinkenwall")).ok(),
+                chip.get_line(RCK).and_then(|line|
+                    line.request(LineRequestFlags::OUTPUT, 0, "blinkenwall")).ok(),
+            )
+        }
+        Err(err) => {
+            log::error!("Failed getting GPIOs: {:?}", err);
+            (None, None)
+        }
+    };
+    log::debug!("wrench = {:?}, rck = {:?}", wrench, rck);
+
+    let led_control = if let (Some(wrench), Some(rck)) = (wrench, rck) {
+        LedControl::new(rck, wrench).ok()
+    } else {
+        None
+    };
+    let mut state_machine = states::StateMachine::new(display, led_control, config);
 
     loop {
         state_machine.update();

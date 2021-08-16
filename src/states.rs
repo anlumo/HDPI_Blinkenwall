@@ -2,8 +2,9 @@
 use glium::backend::glutin::Display;
 use log::{error, info};
 use std::{process::Command, time::Duration};
+use libmpv::events::Event;
 
-use crate::{config::Config, frontpanel, poetry::Poetry, shadertoy::ShaderToy, video::Video};
+use crate::{config::Config, frontpanel::{LedControl, Led}, poetry::Poetry, shadertoy::ShaderToy, video::Video};
 
 pub enum State {
     Off,
@@ -20,58 +21,72 @@ pub struct StateMachine {
     display: Display,
     state: State,
     config: Config,
+    led_control: Option<LedControl>,
 }
 
 impl StateMachine {
-    pub fn new(display: Display, config: Config) -> Self {
+    pub fn new(display: Display, led_control: Option<LedControl>, config: Config) -> Self {
         StateMachine {
             state: State::Off,
             display,
             config,
+            led_control,
         }
     }
 
     fn exit_transition(&mut self, next: &State) {
         match next {
             State::Off => {
-                frontpanel::set_relay(false).unwrap_or_else(|err| {
-                    error!("{}", err);
-                });
-                frontpanel::write_display("Blinkenwall     Off").unwrap_or_else(|err| {
-                    error!("{}", err);
-                });
+                if let Some(led_control) = &mut self.led_control {
+                    led_control.set(Led::Earth, false).unwrap_or_else(|err| {
+                        error!("{}", err);
+                    });
+                    led_control.set(Led::Relay, false).unwrap_or_else(|err| {
+                        error!("{}", err);
+                    });
+                }
+                // frontpanel::write_display("Blinkenwall     Off").unwrap_or_else(|err| {
+                //     error!("{}", err);
+                // });
             }
             State::ShaderToy { shader_toy: _ } => {
-                frontpanel::write_display("Blinkenwall     ShaderToy").unwrap_or_else(|err| {
-                    error!("{}", err);
-                });
+                // frontpanel::write_display("Blinkenwall     ShaderToy").unwrap_or_else(|err| {
+                //     error!("{}", err);
+                // });
             }
             State::Video { video: _ } => {
-                frontpanel::write_display("Blinkenwall     YouTube").unwrap_or_else(|err| {
-                    error!("{}", err);
-                });
+                // frontpanel::write_display("Blinkenwall     YouTube").unwrap_or_else(|err| {
+                //     error!("{}", err);
+                // });
             }
             State::Poetry { poetry: _ } => {
-                frontpanel::write_display("Blinkenwall     Poetry").unwrap_or_else(|err| {
-                    error!("{}", err);
-                });
+                // frontpanel::write_display("Blinkenwall     Poetry").unwrap_or_else(|err| {
+                //     error!("{}", err);
+                // });
             }
             State::Tox => {
-                frontpanel::write_display("Blinkenwall     Tox").unwrap_or_else(|err| {
-                    error!("{}", err);
-                });
+                // frontpanel::write_display("Blinkenwall     Tox").unwrap_or_else(|err| {
+                //     error!("{}", err);
+                // });
             }
             State::ToxMessage { poetry: _ } => {
-                frontpanel::write_display("Blinkenwall     Tox Messages").unwrap_or_else(|err| {
-                    error!("{}", err);
-                });
+                // frontpanel::write_display("Blinkenwall     Tox Messages").unwrap_or_else(|err| {
+                //     error!("{}", err);
+                // });
             }
             _ => {}
         }
         match self.state {
             State::Off => {
                 info!("Exit Off state");
-                frontpanel::set_relay(true);
+                if let Some(led_control) = &mut self.led_control {
+                    led_control.set(Led::Earth, true).unwrap_or_else(|err| {
+                        error!("{}", err);
+                    });
+                    led_control.set(Led::Relay, true).unwrap_or_else(|err| {
+                        error!("{}", err);
+                    });
+                }
             }
             State::ShaderToy { ref shader_toy } => {
                 info!("Exit ShaderToy state");
@@ -243,7 +258,13 @@ impl StateMachine {
             State::Video { ref mut video } => {
                 match video.step(&self.display) {
                     None => {}
-                    Some(evt) => info!("MPV event: {:?}", evt),
+                    Some(evt) => {
+                        if let Event::EndFile(_) = evt {
+                            self.to_off();
+                        } else {
+                            info!("MPV event: {:?}", evt);
+                        }
+                    },
                 };
             }
             State::Emulator => {}

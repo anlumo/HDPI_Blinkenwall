@@ -26,4 +26,6 @@ rand_xoshiro = "0.6"
 unicode-normalization = "0.1"
 log4rs = { version = "1.0", features = [ "file_appender" ]}
 atomicring = "1.2"
+gpio-cdev = { git = "https://github.com/rust-embedded/gpio-cdev.git", features = [ "async-tokio" ] }
+spidev = "0.4"
 

@@ -23,4 +23,4 @@ root:
 loggers:
   # Raise the maximum log level for events sent to the "hdpi_blinkenwall" logger to "info"
   hdpi_blinkenwall:
-    level: info
+    level: debug
