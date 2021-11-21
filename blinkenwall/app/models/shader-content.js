@@ -4,5 +4,5 @@ export default Model.extend({
   title: attr('string'),
   description: attr('string'),
   source: attr('string'),
-  commit: attr('string')
+  commit: attr('string'),
 });

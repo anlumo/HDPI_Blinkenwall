@@ -3,10 +3,7 @@ import { computed, observer } from '@ember/object';
 import Component from '@ember/component';
 
 const VERTICES = new Float32Array([
-  -1, -1, 0, 0,
-  -1,  1, 0, 1,
-   1, -1, 1, 0,
-   1,  1, 1, 1,
+  -1, -1, 0, 0, -1, 1, 0, 1, 1, -1, 1, 0, 1, 1, 1, 1,
 ]);
 const NUM_VERTICES = VERTICES.length / 4;
 
@@ -56,7 +53,7 @@ const UNIFORM_NAMES = [
 export default Component.extend({
   tagName: 'canvas',
   classNames: ['preview'],
-  source: "",
+  source: '',
   frameIndex: 0,
   startRenderTimestamp: 0,
 
@@ -65,18 +62,19 @@ export default Component.extend({
     this.animate = this._animate.bind(this);
   },
 
-  gl: computed('element', function() {
+  gl: computed('element', function () {
     let canvas = this.element;
     var context;
 
     if (canvas) {
-      context = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      context =
+        canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     }
 
     return context;
   }),
 
-  program: computed('gl', 'source', function() {
+  program: computed('gl', 'source', function () {
     try {
       return this.programFromCompiledShadersAndUniformNames(
         this.gl,
@@ -84,19 +82,21 @@ export default Component.extend({
         FRAGMENT_SHADER_PREAMBLE + this.source,
         UNIFORM_NAMES
       );
-    } catch(e) {
+    } catch (e) {
       console.error(e);
       return null;
     }
   }),
 
   didInsertElement() {
+    this._super(...arguments);
     scheduleOnce('afterRender', () => {
       this.configureGl();
       window.requestAnimationFrame(this.animate);
     });
   },
   willDestroyElement() {
+    this._super(...arguments);
     this.animate = null;
   },
 
@@ -116,8 +116,10 @@ export default Component.extend({
     let gl = this.gl;
     let canvas = gl.canvas;
 
-    if (canvas.clientWidth === canvas.width * 2 &&
-        canvas.clientHeight === canvas.height * 2) {
+    if (
+      canvas.clientWidth === canvas.width * 2 &&
+      canvas.clientHeight === canvas.height * 2
+    ) {
       return;
     }
 
@@ -127,7 +129,7 @@ export default Component.extend({
     gl.viewport(0, 0, canvas.width, canvas.height);
   },
 
-  programChanged: observer('program', function() {
+  programChanged: observer('program', function () {
     scheduleOnce('afterRender', () => {
       this.configureGl();
     });
@@ -139,9 +141,13 @@ export default Component.extend({
 
     gl.uniform1f(program.uniformsCache['iGlobalTime'], time);
     gl.uniform1f(program.uniformsCache['iTime'], time);
-    gl.uniform3fv(program.uniformsCache['iResolution'], [canvas.width, canvas.height, 1]);
+    gl.uniform3fv(program.uniformsCache['iResolution'], [
+      canvas.width,
+      canvas.height,
+      1,
+    ]);
     gl.uniform4fv(program.uniformsCache['iMouse'], [0, 0, 0, 0]);
-    gl.uniform4fv(program.uniformsCache['iDate'], [0,0,0,0]);
+    gl.uniform4fv(program.uniformsCache['iDate'], [0, 0, 0, 0]);
     gl.uniform1i(program.uniformsCache['iFrame'], this.frameIndex);
   },
 
@@ -149,7 +155,9 @@ export default Component.extend({
     var positionLocation = gl.getAttribLocation(program, 'position');
     var texLocation = gl.getAttribLocation(program, 'texcoords');
     var buffer = gl.createBuffer();
-    if (!buffer) { throw new Error('Failed to create buffer.'); }
+    if (!buffer) {
+      throw new Error('Failed to create buffer.');
+    }
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 16, 0);
@@ -164,7 +172,7 @@ export default Component.extend({
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.disable(gl.CULL_FACE);
-    gl.clearColor(0,0,0,0);
+    gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
   },
 
@@ -173,7 +181,7 @@ export default Component.extend({
     this.resizeCanvas();
     this.clearGl();
     let program = this.program;
-    if(program) {
+    if (program) {
       this.configureUniforms(gl, program);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, NUM_VERTICES);
       this.incrementProperty('frameIndex');
@@ -182,7 +190,9 @@ export default Component.extend({
 
   _animate() {
     let gl = this.gl;
-    if (!gl) { return; }
+    if (!gl) {
+      return;
+    }
 
     if (this.animate) {
       this.draw();
@@ -190,10 +200,27 @@ export default Component.extend({
     }
   },
 
-  programFromCompiledShadersAndUniformNames(gl, vertexShader, fragmentShader, uniformNames) {
-    var compiledVertexShader = this.compileShader(gl, gl.VERTEX_SHADER, vertexShader);
-    var compiledFragmentShader = this.compileShader(gl, gl.FRAGMENT_SHADER, fragmentShader);
-    var program = this.linkShader(gl, compiledVertexShader, compiledFragmentShader);
+  programFromCompiledShadersAndUniformNames(
+    gl,
+    vertexShader,
+    fragmentShader,
+    uniformNames
+  ) {
+    var compiledVertexShader = this.compileShader(
+      gl,
+      gl.VERTEX_SHADER,
+      vertexShader
+    );
+    var compiledFragmentShader = this.compileShader(
+      gl,
+      gl.FRAGMENT_SHADER,
+      fragmentShader
+    );
+    var program = this.linkShader(
+      gl,
+      compiledVertexShader,
+      compiledFragmentShader
+    );
     this.cacheUniformLocations(gl, program, uniformNames);
     return program;
   },
@@ -211,31 +238,30 @@ export default Component.extend({
   },
 
   linkShader(gl, vertexShader, fragmentShader) {
-   var program = gl.createProgram();
-   gl.attachShader(program, vertexShader);
-   gl.attachShader(program, fragmentShader);
-   gl.linkProgram(program);
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
 
-   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-     throw new Error(gl.getProgramInfoLog(program));
-   }
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error(gl.getProgramInfoLog(program));
+    }
 
-   return program;
- },
+    return program;
+  },
 
- cacheUniformLocations(gl, program, uniformNames) {
-   let that = this;
-    uniformNames.forEach(function(uniformName) {
+  cacheUniformLocations(gl, program, uniformNames) {
+    let that = this;
+    uniformNames.forEach(function (uniformName) {
       that.cacheUniformLocation(gl, program, uniformName);
     });
   },
 
   cacheUniformLocation(gl, program, label) {
-  	if (!program.uniformsCache) {
-  		program.uniformsCache = {};
-  	}
+    if (!program.uniformsCache) {
+      program.uniformsCache = {};
+    }
 
-  	program.uniformsCache[label] = gl.getUniformLocation(program, label);
+    program.uniformsCache[label] = gl.getUniformLocation(program, label);
   },
-
 });

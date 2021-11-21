@@ -1,1 +1,14 @@
-{{outlet}}
+<div class="ui grid">
+    <div class="four wide column">
+        <div class="ui vertical fluid tabular menu">
+            {{#each this.model.roms as |rom|}}
+            <a class="item" onclick={{action 'startEmulator' rom}}>{{rom}}</a>
+            {{/each}}
+        </div>
+    </div>
+    <div class="twelve wide stretched column">
+        <div class="ui segment">
+            <Joypad />
+        </div>
+    </div>
+</div>

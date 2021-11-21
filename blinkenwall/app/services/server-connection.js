@@ -15,14 +15,14 @@ export default Service.extend({
   },
 
   send(message, cb) {
-    let index = "" + this.index;
-    if(cb) {
+    let index = '' + this.index;
+    if (cb) {
       this.callbacks[index] = cb;
     }
     let msg = $.extend({ req: index }, message);
     let ws = this.ws;
-    if(ws && ws.readyState === 1) {
-      console.log("Sending websocket message", msg);
+    if (ws && ws.readyState === 1) {
+      console.log('Sending websocket message', msg);
       this.ws.send(JSON.stringify(msg));
     } else {
       this.messageQueue.push(msg);
@@ -31,7 +31,7 @@ export default Service.extend({
   },
 
   onOpen() {
-    console.log("Websocket connection opened.");
+    console.log('Websocket connection opened.');
     let ws = this.ws;
     this.messageQueue.forEach((msg) => {
       ws.send(JSON.stringify(msg));
@@ -41,11 +41,11 @@ export default Service.extend({
 
   onMessage(event) {
     let msg = JSON.parse(event.data);
-    console.log("Received websocket message", msg);
+    console.log('Received websocket message', msg);
     let req = msg.req;
-    if(req) {
+    if (req) {
       let cb = this.callbacks[req];
-      if(cb) {
+      if (cb) {
         cb(msg);
         delete this.callbacks[req];
       }
@@ -53,16 +53,18 @@ export default Service.extend({
   },
 
   onClose() {
-    if(this.ws) {
-      console.log("Websocket closed, trying to reconnect in 2s...");
+    if (this.ws) {
+      console.log('Websocket closed, trying to reconnect in 2s...');
       this.set('ws', null);
-      later(this, "reconnect", 2000);
+      later(this, 'reconnect', 2000);
     }
   },
 
   reconnect() {
-    console.log("Connecting to websocket...");
-    let ws = new WebSocket(`ws://${document.location.hostname}:${this.port}/blinkenwall`);
+    console.log('Connecting to websocket...');
+    let ws = new WebSocket(
+      `ws://${document.location.hostname}:${this.port}/blinkenwall`
+    );
     ws.onopen = this.onOpen.bind(this);
     ws.onmessage = this.onMessage.bind(this);
     ws.onerror = this.onClose.bind(this);

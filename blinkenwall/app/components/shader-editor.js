@@ -3,10 +3,11 @@ import Component from '@ember/component';
 
 export default Component.extend({
   store: service(),
-  editorSource: "",
+  editorSource: '',
   shader: null,
 
   didInsertElement() {
+    this._super(...arguments);
     let shader = this.shader;
     let source = shader.get('source');
     this.set('editorSource', source);
@@ -22,11 +23,7 @@ export default Component.extend({
       this.shader.set('source', this.editorSource);
       this.sendAction('compile', this.get('shader.source'));
     },
-    maximize() {
-
-    },
-    help() {
-
-    }
-  }
+    maximize() {},
+    help() {},
+  },
 });

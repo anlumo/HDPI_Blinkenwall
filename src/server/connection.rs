@@ -303,7 +303,9 @@ impl ResponseHandler {
     pub fn send_emulator_list(&self, path: impl AsRef<Path>) -> Result<()> {
         self.out.send(
             json!({
+                "req": self.req,
                 "roms": crate::emulator::Emulator::available_roms(path)?,
+                "status": "ok"
             })
             .to_string(),
         )

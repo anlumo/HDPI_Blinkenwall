@@ -13,8 +13,8 @@ export default Controller.extend({
     },
     stop() {
       this.serverConnection.send({
-        cmd: "turnoff"
+        cmd: 'turnoff',
       });
     },
-  }
+  },
 });

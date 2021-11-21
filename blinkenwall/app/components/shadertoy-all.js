@@ -9,10 +9,16 @@ export default Component.extend({
   shaders: [],
 
   didInsertElement() {
+    this._super(...arguments);
     this.store.findAll('shader').then((shaders) => {
-      Promise.all(shaders.map((s) => { return s.get('content'); } )).then(() => {
+      Promise.all(
+        shaders.map((s) => {
+          return s.get('content');
+        })
+      ).then(() => {
         let list = shaders.toArray().sort((a, b) => {
-          let nameA = a.get('content.title'), nameB = b.get('content.title');
+          let nameA = a.get('content.title'),
+            nameB = b.get('content.title');
           console.log(`a = ${nameA}, b = ${nameB}`);
           if (nameA < nameB) {
             return -1;
@@ -27,5 +33,5 @@ export default Component.extend({
         this.set('shaders', list);
       });
     });
-  }
+  },
 });

@@ -7,8 +7,8 @@ module.exports = function (defaults) {
     // Add options here
     ace: {
       modes: ['glsl'],
-      workers: ['glsl']
-    }
+      workers: ['glsl'],
+    },
   });
 
   // Use `app.import` to add additional libraries to the generated

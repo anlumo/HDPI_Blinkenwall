@@ -6,7 +6,7 @@ import Controller from '@ember/controller';
 export default Controller.extend({
   serverConnection: service(),
 
-  isNew: computed('model.id', function() {
+  isNew: computed('model.id', function () {
     return this.get('model.id') == null;
   }),
 
@@ -21,9 +21,9 @@ export default Controller.extend({
     },
     activate() {
       this.serverConnection.send({
-        cmd: "shader activate",
-        id: this.get('model.id')
+        cmd: 'shader activate',
+        id: this.get('model.id'),
       });
-    }
-  }
+    },
+  },
 });

@@ -10,8 +10,8 @@ export default Component.extend({
 
   shuffle(array) {
     let top = array.length;
-    if(top) {
-      while(--top) {
+    if (top) {
+      while (--top) {
         let current = Math.floor(Math.random() * (top + 1));
         [array[current], array[top]] = [array[top], array[current]];
       }
@@ -20,10 +20,11 @@ export default Component.extend({
   },
 
   didInsertElement() {
+    this._super(...arguments);
     this.store.findAll('shader').then((shaders) => {
       let list = shaders.toArray();
       this.shuffle(list);
       this.set('highlights', list.slice(0, this.count));
     });
-  }
+  },
 });

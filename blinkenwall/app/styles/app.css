@@ -59,3 +59,44 @@ img.pixelated {
   display: flex;
   align-items: center;
 }
+
+.joypad {
+  display: grid;
+  grid: ". select start ." 1fr
+        ". up . a" 1fr
+        "left down right b" 1fr
+        / auto auto auto auto;
+  gap: 1em;
+}
+
+.joypad > .button.emu-up {
+  grid-area: up;
+}
+
+.joypad > .button.emu-down {
+  grid-area: down;
+}
+
+.joypad > .button.emu-left {
+  grid-area: left;
+}
+
+.joypad > .button.emu-right {
+  grid-area: right;
+}
+
+.joypad > .button.emu-a {
+  grid-area: a;
+}
+
+.joypad > .button.emu-b {
+  grid-area: b;
+}
+
+.joypad > .button.emu-start {
+  grid-area: start;
+}
+
+.joypad > .button.emu-select {
+  grid-area: select;
+}
