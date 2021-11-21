@@ -65,8 +65,14 @@ img.pixelated {
   grid: ". select start ." 1fr
         ". up . a" 1fr
         "left down right b" 1fr
-        / auto auto auto auto;
+        "notes notes notes notes" auto
+        / 1fr 1fr 1fr 1fr;
   gap: 1em;
+  padding: 1em;
+}
+
+.joypad:focus {
+  outline: 2px solid #008080;
 }
 
 .joypad > .button.emu-up {
@@ -99,4 +105,8 @@ img.pixelated {
 
 .joypad > .button.emu-select {
   grid-area: select;
+}
+
+.joypad > .notes {
+  grid-area: notes;
 }
