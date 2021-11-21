@@ -3,7 +3,7 @@ use crate::server::ShaderData;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::sync::mpsc;
+use std::{path::Path, sync::mpsc};
 use ws::{self, CloseCode, Error, ErrorKind, Handler, Handshake, Result, Sender};
 
 #[derive(Serialize, Deserialize)]
@@ -88,8 +88,8 @@ impl Handler for Connection {
                         }
                         "shader write" => {
                             if let (
-                                &serde_json::Value::String(ref key),
-                                &serde_json::Value::String(ref commit),
+                                serde_json::Value::String(key),
+                                serde_json::Value::String(commit),
                             ) = (&obj["id"], &obj["commit"])
                             {
                                 match Connection::parse_shaderdata(&obj) {
@@ -119,7 +119,7 @@ impl Handler for Connection {
                             Err(error) => resp.send_error(400, &error.details).unwrap(),
                         },
                         "shader remove" => {
-                            if let serde_json::Value::String(ref key) = obj["id"] {
+                            if let serde_json::Value::String(key) = &obj["id"] {
                                 self.channel
                                     .send((Command::RemoveShader(key.clone()), resp))
                                     .unwrap();
@@ -129,7 +129,7 @@ impl Handler for Connection {
                             }
                         }
                         "shader activate" => {
-                            if let serde_json::Value::String(ref key) = obj["id"] {
+                            if let serde_json::Value::String(key) = &obj["id"] {
                                 self.channel
                                     .send((Command::ActivateShader(key.clone()), resp))
                                     .unwrap();
@@ -139,7 +139,7 @@ impl Handler for Connection {
                             }
                         }
                         "video play" => {
-                            if let serde_json::Value::String(ref url) = obj["url"] {
+                            if let serde_json::Value::String(url) = &obj["url"] {
                                 self.channel
                                     .send((Command::PlayVideo(url.clone()), resp))
                                     .unwrap();
@@ -154,7 +154,7 @@ impl Handler for Connection {
                             self.channel.send((Command::TurnOff, resp)).unwrap();
                         }
                         "show poetry" => {
-                            if let serde_json::Value::String(ref text) = obj["text"] {
+                            if let serde_json::Value::String(text) = &obj["text"] {
                                 self.channel
                                     .send((Command::ShowPoetry(text.clone()), resp))
                                     .unwrap();
@@ -168,7 +168,7 @@ impl Handler for Connection {
                             self.channel.send((Command::StartTox, resp)).unwrap();
                         }
                         "tox message" => {
-                            if let serde_json::Value::String(ref text) = obj["text"] {
+                            if let serde_json::Value::String(text) = &obj["text"] {
                                 self.channel
                                     .send((Command::ToxMessage(text.clone()), resp))
                                     .unwrap();
@@ -176,6 +176,37 @@ impl Handler for Connection {
                                 self.channel
                                     .send((Command::ToxMessage(String::new()), resp))
                                     .unwrap();
+                            }
+                        }
+                        "emulator list" => {
+                            resp.send_emulator_list(crate::ROMS_PATH.get().unwrap())
+                                .unwrap();
+                        }
+                        "emulator start" => {
+                            if let serde_json::Value::String(rom) = &obj["rom"] {
+                                self.channel
+                                    .send((Command::StartEmulator(rom.clone()), resp))
+                                    .unwrap();
+                            } else {
+                                resp.send_error(400, "Message needs string in rom key, ignored.")
+                                    .unwrap();
+                            }
+                        }
+                        "emulator input" => {
+                            if let (
+                                serde_json::Value::String(key),
+                                serde_json::Value::Bool(press),
+                            ) = (&obj["key"], &obj["press"])
+                            {
+                                self.channel
+                                    .send((Command::EmulatorInput(key.clone(), *press), resp))
+                                    .unwrap();
+                            } else {
+                                resp.send_error(
+                                    400,
+                                    "Message needs key and press entries, ignored.",
+                                )
+                                .unwrap();
                             }
                         }
                         _ => resp.send_error(404, "Unknown command").unwrap(),
@@ -264,6 +295,15 @@ impl ResponseHandler {
                 "req": self.req,
                 "id": id,
                 "commit": commit,
+            })
+            .to_string(),
+        )
+    }
+
+    pub fn send_emulator_list(&self, path: impl AsRef<Path>) -> Result<()> {
+        self.out.send(
+            json!({
+                "roms": crate::emulator::Emulator::available_roms(path)?,
             })
             .to_string(),
         )

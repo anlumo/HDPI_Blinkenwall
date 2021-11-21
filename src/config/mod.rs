@@ -28,12 +28,26 @@ pub struct Poetry {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct Emulator {
+    pub roms: String,
+    #[serde(default)]
+    pub dmg: bool,
+    #[serde(default = "default_fps")]
+    pub fps: u32,
+}
+
+fn default_fps() -> u32 {
+    60
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Config {
     pub logconfig: String,
     pub database: Database,
     pub server: Server,
     pub display: Display,
     pub poetry: Poetry,
+    pub emulator: Emulator,
 }
 
 impl Config {

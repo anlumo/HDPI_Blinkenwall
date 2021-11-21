@@ -25,6 +25,8 @@ pub enum Command {
     ShowPoetry(String),
     StartTox,
     ToxMessage(String),
+    StartEmulator(String),
+    EmulatorInput(String, bool),
 }
 
 pub fn open_server(

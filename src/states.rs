@@ -2,10 +2,14 @@
 use glium::backend::glutin::Display;
 use libmpv::events::{Event, PropertyData};
 use log::{error, info};
-use std::{process::Command, time::Duration};
+use std::{
+    process::Command,
+    time::{Duration, Instant},
+};
 
 use crate::{
     config::Config,
+    emulator::Emulator,
     frontpanel::{Led, LedControl},
     poetry::Poetry,
     shadertoy::ShaderToy,
@@ -14,13 +18,24 @@ use crate::{
 
 pub enum State {
     Off,
-    ShaderToy { shader_toy: ShaderToy },
-    Video { video: Video },
-    Emulator,
+    ShaderToy {
+        shader_toy: ShaderToy,
+    },
+    Video {
+        video: Video,
+    },
+    Emulator {
+        emulator: Emulator,
+        last_frame: Instant,
+    },
     VNC,
-    Poetry { poetry: Poetry },
+    Poetry {
+        poetry: Poetry,
+    },
     Tox,
-    ToxMessage { poetry: Poetry },
+    ToxMessage {
+        poetry: Poetry,
+    },
 }
 
 pub struct StateMachine {
@@ -101,7 +116,7 @@ impl StateMachine {
                 info!("Exit Video state");
                 video.stop();
             }
-            State::Emulator => {
+            State::Emulator { .. } => {
                 info!("Exit Emulator state");
             }
             State::VNC => {
@@ -142,7 +157,16 @@ impl StateMachine {
             State::Off => None,
             State::ShaderToy { ref shader_toy } => Some(Duration::from_secs(0)),
             State::Video { ref video } => Some(Duration::from_secs(0)),
-            State::Emulator => None,
+            State::Emulator { last_frame, .. } => {
+                // let time_per_frame =
+                //     Duration::from_micros((1e6 / self.config.emulator.fps as f32) as _);
+                // let frame_time = Instant::now() - last_frame;
+                // if time_per_frame < frame_time {
+                Some(Duration::from_secs(0))
+                // } else {
+                //     Some(time_per_frame - frame_time)
+                // }
+            }
             State::VNC => None,
             State::Poetry { ref poetry } | State::ToxMessage { ref poetry } => {
                 Some(Duration::from_secs(0))
@@ -255,6 +279,23 @@ impl StateMachine {
         }
     }
 
+    pub fn to_emulator(&mut self, game: String) {
+        let emulator = crate::emulator::Emulator::new(&self.display, &game, &self.config.emulator);
+        let next = State::Emulator {
+            emulator,
+            last_frame: Instant::now(),
+        };
+        self.exit_transition(&next);
+        self.state = next;
+        info!("Enter Emulator state");
+    }
+
+    pub fn emulator_input(&mut self, key: &str, press: bool) {
+        if let State::Emulator { emulator, .. } = &mut self.state {
+            emulator.input(key, press);
+        }
+    }
+
     pub fn update(&mut self) {
         match self.state {
             State::Off => {}
@@ -280,7 +321,13 @@ impl StateMachine {
                     }
                 };
             }
-            State::Emulator => {}
+            State::Emulator {
+                ref mut emulator,
+                ref mut last_frame,
+            } => {
+                *last_frame = Instant::now();
+                emulator.step(&self.display);
+            }
             State::VNC => {}
             State::Poetry { ref mut poetry } | State::ToxMessage { ref mut poetry } => {
                 poetry.step(&self.display);

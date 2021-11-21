@@ -15,5 +15,8 @@
   "poetry": {
     "font": "tom-thumb.bdf",
     "speed": 10
+  },
+  "emulator": {
+    "roms": "roms"
   }
 }

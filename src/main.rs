@@ -2,14 +2,16 @@
 #![allow(unused)]
 
 use glium::glutin;
+use gpio_cdev::{Chip, LineHandle, LineRequestFlags};
 use log::{error, info};
-use std::{process, process::Command, sync::mpsc};
-use gpio_cdev::{LineRequestFlags, Chip, LineHandle};
+use once_cell::sync::OnceCell;
+use std::{path::PathBuf, process, process::Command, sync::mpsc};
 
 mod config;
 mod database;
 mod frontpanel;
 use frontpanel::LedControl;
+mod emulator;
 mod poetry;
 mod server;
 mod shadertoy;
@@ -19,6 +21,8 @@ mod video;
 const RCK: u32 = 13;
 const CLR: u32 = 19;
 const WRENCH: u32 = 12;
+
+static ROMS_PATH: OnceCell<PathBuf> = OnceCell::new();
 
 fn handle_message(
     cmd: &server::Command,
@@ -81,6 +85,14 @@ fn handle_message(
             state_machine.to_tox_message(text);
             resp.send_ok()
         }
+        server::Command::StartEmulator(game) => {
+            state_machine.to_emulator(game.clone());
+            resp.send_ok()
+        }
+        server::Command::EmulatorInput(key, press) => {
+            state_machine.emulator_input(key, *press);
+            resp.send_ok()
+        }
     };
 }
 
@@ -121,13 +133,16 @@ fn main() {
         Ok(mut chip) => {
             log::debug!("Chip = {:?}", chip);
             // the clear line has to be held high, otherwise the chip doesn't do anything
-            chip.get_line(CLR).and_then(|line|
-                line.request(LineRequestFlags::OUTPUT, 1, "frontpanel")).ok();
+            chip.get_line(CLR)
+                .and_then(|line| line.request(LineRequestFlags::OUTPUT, 1, "frontpanel"))
+                .ok();
             (
-                chip.get_line(WRENCH).and_then(|line|
-                    line.request(LineRequestFlags::OUTPUT, 0, "blinkenwall")).ok(),
-                chip.get_line(RCK).and_then(|line|
-                    line.request(LineRequestFlags::OUTPUT, 0, "blinkenwall")).ok(),
+                chip.get_line(WRENCH)
+                    .and_then(|line| line.request(LineRequestFlags::OUTPUT, 0, "blinkenwall"))
+                    .ok(),
+                chip.get_line(RCK)
+                    .and_then(|line| line.request(LineRequestFlags::OUTPUT, 0, "blinkenwall"))
+                    .ok(),
             )
         }
         Err(err) => {
@@ -142,6 +157,7 @@ fn main() {
     } else {
         None
     };
+    ROMS_PATH.set((&config.emulator.roms).into());
     let mut state_machine = states::StateMachine::new(display, led_control, config);
 
     loop {
