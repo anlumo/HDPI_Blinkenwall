@@ -1,5 +1,5 @@
 <div autofocus='autofocus' class='joypad' tabindex="1" {{on 'keydown' (action 'keydown' )}} {{on 'keyup' (action 'keyup'
-    )}}>
+    )}} {{did-insert this.didInsert}} {{will-destroy this.willDestroy}}>
     <div class="ui icon button emu-up" {{on 'mousedown' (action 'mousedown' 'up' ) }} {{on 'mouseup'
         (action 'mouseup' 'up' ) }}>
         <i class="arrow alternate circle up icon"></i>

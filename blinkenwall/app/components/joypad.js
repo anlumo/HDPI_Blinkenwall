@@ -4,6 +4,22 @@ import { inject as service } from '@ember/service';
 
 export default class JoypadComponent extends Component {
     @service serverConnection;
+    @service gamepad;
+
+    _gamepad = null;
+
+    @action
+    didInsert() {
+        this._gamepad = this.gamepad.addGamepadEventListener(this.gamepadChanged.bind(this));
+    }
+
+    @action
+    willDestroy() {
+        if(this._gamepad !== null) {
+            this.gamepad.removeGamepadEventListener(this._gamepad);
+            this._gamepad = null;
+        }
+    }
 
     @action
     mousedown(key) {
@@ -77,5 +93,9 @@ export default class JoypadComponent extends Component {
                 press: false,
             });
         }
+    }
+
+    gamepadChanged(gamepad, buttons) {
+        // TODO
     }
 }
