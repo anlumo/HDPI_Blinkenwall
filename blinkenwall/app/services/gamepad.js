@@ -9,7 +9,7 @@ export default class GamepadService extends Service {
     _currentAnimationFrame = null;
 
     init() {
-        this._super();
+        super.init();
         window.addEventListener("gamepadconnected", this.connected.bind(this));
         window.addEventListener("gamepaddisconnected", this.disconnected.bind(this));
     }
@@ -17,6 +17,7 @@ export default class GamepadService extends Service {
     addGamepadEventListener(fn) {
         this._eventListeners.set(id, fn);
         if(this.gamepads.size > 0 && this._currentAnimationFrame === null) {
+            console.log('starting polling');
             this._currentAnimationFrame = window.requestAnimationFrame(this.pollGamepads.bind(this));
         }
         return id++;
@@ -24,22 +25,32 @@ export default class GamepadService extends Service {
 
     removeGamepadEventListener(removeId) {
         this._eventListeners.delete(removeId);
-        if(this._eventListeners.length === 0 && this._currentAnimationFrame !== null) {
+        if(this._eventListeners.size === 0 && this._currentAnimationFrame !== null) {
+            console.log('ending polling');
             window.cancelAnimationFrame(this._currentAnimationFrame);
             this._currentAnimationFrame = null;
         }
     }
 
     connected(event) {
-        this.gamepads.set(event.gamepad, event.gamepad.buttons.map((button) => button.pressed));
-        if(this._eventListeners.length > 0 && this._currentAnimationFrame === null) {
+        if(this.gamepads.size > 0) {
+            return; // don't support more than one controller right now
+        }
+        this.gamepads.set(event.gamepad, {
+            buttons: event.gamepad.buttons.map((button) => button.pressed),
+            axes: event.gamepad.axes.slice(),
+        });
+        if(this._eventListeners.size > 0 && this._currentAnimationFrame === null) {
+            console.log('starting polling');
             this._currentAnimationFrame = window.requestAnimationFrame(this.pollGamepads.bind(this));
         }
     }
 
     disconnected(event) {
+        console.log('gamepad disconnected', event);
         this.gamepads.delete(event.gamepad);
         if(this.gamepads.size === 0 && this._currentAnimationFrame !== null) {
+            console.log('ending polling');
             window.cancelAnimationFrame(this._currentAnimationFrame);
             this._currentAnimationFrame = null;
         }
@@ -48,20 +59,32 @@ export default class GamepadService extends Service {
     pollGamepads() {
         const { gamepads } = this;
         const changed = [];
-        for(const [gamepad, oldState] in gamepads) {
+        for(const [gamepad, { buttons: oldState, axes: oldAxes }] of gamepads) {
             const newState = gamepad.buttons.map((button) => button.pressed);
-            for(const i = 0; i < newState.length; ++i) {
-                if(newState[i] !== oldState[i]) {
-                    changed.push({ gamepad, newState });
+            const newAxes = gamepad.axes;
+            let isChanged = false;
+            for(let i = 0; i < newAxes.length; ++i) {
+                if(Math.abs(newAxes[i] - oldAxes[i]) > 0.01) {
+                    changed.push({ gamepad, newState, newAxes: newAxes.slice() });
+                    isChanged = true;
                     break;
                 }
             }
-        }
-        for (const change in changed) {
-            gamepads.set(change.gamepad, change.newState);
-            for (const listener in this._eventListeners) {
-                listener.fn(change.gamepad, change.newState);
+            if(!isChanged) {
+                for(let i = 0; i < newState.length; ++i) {
+                    if(newState[i] !== oldState[i]) {
+                        changed.push({ gamepad, newState, newAxes: newAxes.slice() });
+                        break;
+                    }
+                }
             }
+        }
+        for (const change of changed) {
+            const old = gamepads.get(change.gamepad);
+            for (const listener of this._eventListeners.values()) {
+                listener(change.gamepad, old.buttons, change.newState, old.axes, change.newAxes);
+            }
+            gamepads.set(change.gamepad, { buttons: change.newState, axes: change.newAxes });
         }
 
         this._currentAnimationFrame = window.requestAnimationFrame(this.pollGamepads.bind(this));
