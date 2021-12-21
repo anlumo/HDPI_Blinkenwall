@@ -63,7 +63,7 @@ export default Service.extend({
   reconnect() {
     console.log('Connecting to websocket...');
     let ws = new WebSocket(
-      `ws://${document.location.hostname}:${this.port}/blinkenwall`
+      `${document.location.protocol === 'https:'?'wss':'ws'}://${document.location.hostname}/blinkenwall`
     );
     ws.onopen = this.onOpen.bind(this);
     ws.onmessage = this.onMessage.bind(this);
