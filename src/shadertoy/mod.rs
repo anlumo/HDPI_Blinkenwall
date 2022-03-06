@@ -113,9 +113,9 @@ impl ShaderToy {
         }
     }
 
-    pub fn new(display: &Display, shader: &str) -> ShaderToy {
-        Self::new_internal(display, shader, None)
-    }
+    // pub fn new(display: &Display, shader: &str) -> ShaderToy {
+    //     Self::new_internal(display, shader, None)
+    // }
 
     pub fn new_with_audio(display: &Display, shader: &str) -> ShaderToy {
         let mut input = audio::AudioInput::new();
@@ -134,7 +134,7 @@ impl ShaderToy {
         )
         .unwrap();
 
-        input.start();
+        input.start().ok();
         Self::new_internal(
             display,
             shader,
@@ -170,7 +170,7 @@ impl ShaderToy {
                     texels[index + 512] = buffer[index * 2] * 0.5 + 0.5;
                 }
                 // frequency domain
-                let fft = audio.fft.process(&buffer.to_vec());
+                let fft = audio.fft.process(&buffer);
                 for (index, sample) in fft.iter().enumerate() {
                     texels[index] = *sample;
                 }

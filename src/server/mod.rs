@@ -2,7 +2,7 @@ pub mod connection;
 use self::connection::Connection;
 use log::info;
 use std::{
-    sync::mpsc::{channel, Receiver},
+    sync::mpsc::{channel, Receiver, Sender},
     thread,
 };
 
@@ -34,11 +34,13 @@ pub fn open_server(
     port: u16,
 ) -> (
     thread::JoinHandle<ws::Result<()>>,
-    Receiver<(Command, connection::ResponseHandler)>,
+    Receiver<(Command, Option<connection::ResponseHandler>)>,
+    Sender<(Command, Option<connection::ResponseHandler>)>,
 ) {
     let addr = format!("{}:{}", ip, port);
     info!("Listening on {}...", addr);
-    let (tx, rx) = channel::<(Command, connection::ResponseHandler)>();
+    let (tx, rx) = channel();
+    let tx_2 = tx.clone();
     (
         thread::Builder::new()
             .name("Websocket Server".to_string())
@@ -48,5 +50,6 @@ pub fn open_server(
             })
             .unwrap(),
         rx,
+        tx_2,
     )
 }

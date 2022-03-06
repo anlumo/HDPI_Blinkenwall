@@ -1,7 +1,5 @@
 use crate::server::ShaderData;
-use git2::{
-    Branch, BranchType, Commit, Error, ObjectType, Oid, Repository, Signature, TreeBuilder,
-};
+use git2::{BranchType, Commit, Error, ObjectType, Oid, Repository, Signature, TreeBuilder};
 use serde_json::json;
 
 pub struct Database {
@@ -192,7 +190,7 @@ impl Database {
         let mut branch = self
             .repository
             .find_branch(&vec![BRANCH_PREFIX, name].join(""), BranchType::Local)?;
-        branch.delete();
+        branch.delete().ok();
         Ok(())
     }
 }

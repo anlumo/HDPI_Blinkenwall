@@ -3,10 +3,7 @@ use glium::index::PrimitiveType;
 use glium::{implement_vertex, program};
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256Plus;
-use std::borrow::Cow;
 use std::f32;
-use std::io::{ErrorKind, Read};
-use std::net::{TcpListener, TcpStream};
 
 mod render;
 use self::render::Vertex;

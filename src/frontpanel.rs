@@ -2,6 +2,7 @@ use gpio_cdev::LineHandle;
 use spidev::{SpiModeFlags, Spidev, SpidevOptions};
 use std::{io, io::Write, time::Duration};
 
+#[allow(dead_code)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(u8)]
 pub enum Led {

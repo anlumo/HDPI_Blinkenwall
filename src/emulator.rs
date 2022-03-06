@@ -3,12 +3,10 @@ use std::{borrow::Cow, path::Path};
 use glium::{
     backend::glutin::Display,
     index::PrimitiveType,
-    texture::{
-        texture2d::Texture2d, ClientFormat, MipmapsOption, RawImage2d, UncompressedFloatFormat,
-    },
+    texture::{texture2d::Texture2d, ClientFormat, MipmapsOption, RawImage2d},
     uniform,
-    uniforms::{MagnifySamplerFilter, MinifySamplerFilter, Sampler, UniformValue},
-    Frame, Rect, Surface, {implement_vertex, program},
+    uniforms::{MagnifySamplerFilter, MinifySamplerFilter, Sampler},
+    Rect, Surface, {implement_vertex, program},
 };
 use mizu_core::{GameBoy, GameboyConfig, JoypadButton};
 
@@ -56,9 +54,9 @@ pub struct Vertex {
 }
 
 pub struct Emulator {
-    game_name: String,
+    _game_name: String,
     gameboy: GameBoy,
-    fps: u32,
+    _fps: u32,
     texture: Texture2d,
     program: glium::Program,
     vertex_buffer: glium::VertexBuffer<Vertex>,
@@ -137,9 +135,9 @@ impl Emulator {
         audio_player.play();
 
         Self {
-            game_name: game.to_owned(),
+            _game_name: game.to_owned(),
             gameboy: GameBoy::new(file_path, None, mizu_config).unwrap(),
-            fps: config.fps,
+            _fps: config.fps,
             texture,
             program,
             vertex_buffer,
@@ -148,9 +146,9 @@ impl Emulator {
         }
     }
 
-    pub fn game_name(&self) -> &str {
-        self.gameboy.game_title()
-    }
+    // pub fn game_name(&self) -> &str {
+    //     self.gameboy.game_title()
+    // }
 
     pub fn input(&mut self, key: &str, press: bool) {
         let button = match key {
@@ -214,6 +212,6 @@ impl Emulator {
                 &Default::default(),
             )
             .unwrap();
-        target.finish();
+        target.finish().ok();
     }
 }

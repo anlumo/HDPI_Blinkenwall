@@ -1,6 +1,5 @@
 use glium::{
     backend::glutin::Display,
-    index::PrimitiveType,
     texture::{
         texture2d::Texture2d, ClientFormat, MipmapsOption, RawImage2d, UncompressedFloatFormat,
     },
@@ -9,10 +8,7 @@ use glium::{
     Frame, Surface,
 };
 use log::info;
-use palette::{
-    convert::FromColorUnclamped, rgb::Rgb, Alpha, FromColor, GammaSrgb, GammaSrgba, Hsv, Hsva,
-    IntoColor, RgbHue, Srgb, Srgba,
-};
+use palette::{Alpha, Hsv, IntoColor, RgbHue, Srgba};
 use rand::Rng;
 use std::{borrow::Cow, cmp, time::Instant, u8};
 use unicode_normalization::UnicodeNormalization;

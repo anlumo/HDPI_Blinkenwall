@@ -6,16 +6,19 @@ use std::{
     process::Command,
     time::{Duration, Instant},
 };
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     config::Config,
     emulator::Emulator,
     frontpanel::{Led, LedControl},
+    mqtt,
     poetry::Poetry,
     shadertoy::ShaderToy,
     video::Video,
 };
 
+#[allow(clippy::large_enum_variant, unused)]
 pub enum State {
     Off,
     ShaderToy {
@@ -28,7 +31,7 @@ pub enum State {
         emulator: Emulator,
         last_frame: Instant,
     },
-    VNC,
+    Vnc,
     Poetry {
         poetry: Poetry,
     },
@@ -43,15 +46,22 @@ pub struct StateMachine {
     state: State,
     config: Config,
     led_control: Option<LedControl>,
+    state_sender: Option<UnboundedSender<mqtt::State>>,
 }
 
 impl StateMachine {
-    pub fn new(display: Display, led_control: Option<LedControl>, config: Config) -> Self {
+    pub fn new(
+        display: Display,
+        led_control: Option<LedControl>,
+        config: Config,
+        state_sender: Option<UnboundedSender<mqtt::State>>,
+    ) -> Self {
         StateMachine {
             state: State::Off,
             display,
             config,
             led_control,
+            state_sender,
         }
     }
 
@@ -109,7 +119,7 @@ impl StateMachine {
                     });
                 }
             }
-            State::ShaderToy { ref shader_toy } => {
+            State::ShaderToy { .. } => {
                 info!("Exit ShaderToy state");
             }
             State::Video { ref mut video } => {
@@ -119,16 +129,16 @@ impl StateMachine {
             State::Emulator { .. } => {
                 info!("Exit Emulator state");
             }
-            State::VNC => {
+            State::Vnc => {
                 info!("Exit VNC state");
             }
-            State::Poetry { ref poetry } => {
+            State::Poetry { .. } => {
                 info!("Exit Poetry state");
             }
             State::Tox => {
                 info!("Exit Tox state");
                 match next {
-                    State::ToxMessage { ref poetry } => {}
+                    State::ToxMessage { .. } => {}
                     _ => {
                         #[cfg(target_os = "linux")]
                         Command::new("/usr/bin/sudo")
@@ -147,7 +157,7 @@ impl StateMachine {
                     .output()
                     .expect("failed to execute process");
             }
-            State::ToxMessage { ref poetry } => {
+            State::ToxMessage { .. } => {
                 info!("Exit Tox Message state");
             }
         };
@@ -155,9 +165,9 @@ impl StateMachine {
     pub fn interval(&self) -> Option<Duration> {
         match self.state {
             State::Off => None,
-            State::ShaderToy { ref shader_toy } => Some(Duration::from_secs(0)),
-            State::Video { ref video } => Some(Duration::from_secs(0)),
-            State::Emulator { last_frame, .. } => {
+            State::ShaderToy { .. } => Some(Duration::from_secs(0)),
+            State::Video { .. } => Some(Duration::from_secs(0)),
+            State::Emulator { .. } => {
                 // let time_per_frame =
                 //     Duration::from_micros((1e6 / self.config.emulator.fps as f32) as _);
                 // let frame_time = Instant::now() - last_frame;
@@ -167,17 +177,17 @@ impl StateMachine {
                 //     Some(time_per_frame - frame_time)
                 // }
             }
-            State::VNC => None,
-            State::Poetry { ref poetry } | State::ToxMessage { ref poetry } => {
-                Some(Duration::from_secs(0))
-            }
+            State::Vnc => None,
+            State::Poetry { .. } | State::ToxMessage { .. } => Some(Duration::from_secs(0)),
             State::Tox => None,
         }
     }
 
     pub fn to_off(&mut self) {
-        if let State::Off = self.state {
-        } else {
+        if !matches!(self.state, State::Off) {
+            if let Some(sender) = &self.state_sender {
+                sender.send(mqtt::State::Stopped).ok();
+            }
             let next = State::Off;
             self.exit_transition(&next);
             self.state = next;
@@ -185,9 +195,12 @@ impl StateMachine {
         }
     }
 
-    pub fn to_shader_toy(&mut self, shader: &str) {
-        if let State::ShaderToy { ref shader_toy } = self.state {
+    pub fn to_shader_toy(&mut self, shader: &str, title: &str) {
+        if let State::ShaderToy { .. } = self.state {
         } else {
+            if let Some(sender) = &self.state_sender {
+                sender.send(mqtt::State::ShaderToy(title.to_owned())).ok();
+            }
             let next = State::ShaderToy {
                 shader_toy: ShaderToy::new_with_audio(&self.display, shader),
             };
@@ -202,8 +215,11 @@ impl StateMachine {
     }
 
     pub fn to_video(&mut self, url: &str) {
-        if let State::Video { ref video } = self.state {
+        if let State::Video { .. } = self.state {
         } else {
+            if let Some(sender) = &self.state_sender {
+                sender.send(mqtt::State::PlayVideo(url.to_owned())).ok();
+            }
             let mut video = Video::new(&self.display);
             video.play(url);
             let next = State::Video { video };
@@ -216,6 +232,9 @@ impl StateMachine {
     pub fn to_tox(&mut self) {
         if let State::Tox = self.state {
         } else {
+            if let Some(sender) = &self.state_sender {
+                sender.send(mqtt::State::Tox).ok();
+            }
             let next = State::Tox;
             self.exit_transition(&next);
             #[cfg(target_os = "linux")]
@@ -243,6 +262,9 @@ impl StateMachine {
                 poetry.show_poem(&self.display, text);
             }
         } else {
+            if let Some(sender) = &self.state_sender {
+                sender.send(mqtt::State::Poetry).ok();
+            }
             let mut poetry = Poetry::new(
                 &self.display,
                 &self.config.poetry.font,
@@ -264,6 +286,9 @@ impl StateMachine {
                 poetry.show_poem(&self.display, text);
             }
         } else {
+            if let Some(sender) = &self.state_sender {
+                sender.send(mqtt::State::Tox).ok();
+            }
             let mut poetry = Poetry::new(
                 &self.display,
                 &self.config.poetry.font,
@@ -280,6 +305,9 @@ impl StateMachine {
     }
 
     pub fn to_emulator(&mut self, game: String) {
+        if let Some(sender) = &self.state_sender {
+            sender.send(mqtt::State::Emulator).ok();
+        }
         let emulator = crate::emulator::Emulator::new(&self.display, &game, &self.config.emulator);
         let next = State::Emulator {
             emulator,
@@ -328,7 +356,7 @@ impl StateMachine {
                 *last_frame = Instant::now();
                 emulator.step(&self.display);
             }
-            State::VNC => {}
+            State::Vnc => {}
             State::Poetry { ref mut poetry } | State::ToxMessage { ref mut poetry } => {
                 poetry.step(&self.display);
             }

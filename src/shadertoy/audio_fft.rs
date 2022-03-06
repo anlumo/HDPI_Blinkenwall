@@ -1,5 +1,4 @@
-use rustfft::{num_complex::Complex, num_traits::Zero, FftPlanner};
-use std::slice;
+use rustfft::{num_complex::Complex, FftPlanner};
 use std::sync::Arc;
 
 pub struct AudioFFT {

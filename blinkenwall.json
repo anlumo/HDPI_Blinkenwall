@@ -18,5 +18,9 @@
   },
   "emulator": {
     "roms": "roms"
+  },
+  "mqtt": {
+    "server": "10.20.30.97",
+    "topic": "metalab/blinkenwall"
   }
 }

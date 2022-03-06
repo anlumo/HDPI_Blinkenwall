@@ -1,17 +1,18 @@
-#![allow(dead_code)]
-#![allow(unused)]
+#![allow(clippy::type_complexity)]
 
 use glium::glutin;
-use gpio_cdev::{Chip, LineHandle, LineRequestFlags};
+use gpio_cdev::{Chip, LineRequestFlags};
 use log::{error, info};
 use once_cell::sync::OnceCell;
-use std::{path::PathBuf, process, process::Command, sync::mpsc};
+use std::{path::PathBuf, process, sync::mpsc, thread};
+use tokio::sync::mpsc::unbounded_channel;
 
 mod config;
 mod database;
 mod frontpanel;
 use frontpanel::LedControl;
 mod emulator;
+mod mqtt;
 mod poetry;
 mod server;
 mod shadertoy;
@@ -26,74 +27,132 @@ static ROMS_PATH: OnceCell<PathBuf> = OnceCell::new();
 
 fn handle_message(
     cmd: &server::Command,
-    resp: &server::connection::ResponseHandler,
+    resp: Option<&server::connection::ResponseHandler>,
     database: &database::Database,
     state_machine: &mut states::StateMachine,
 ) {
     match cmd {
-        server::Command::ListShaders => resp.send_list(database.list().unwrap()),
-        server::Command::ReadShader(ref id) => match database.read(id) {
-            Ok(shader) => resp.send_shader(&shader),
-            Err(error) => resp.send_error(400, &format!("{}", error)),
-        },
+        server::Command::ListShaders => {
+            if let Some(resp) = resp {
+                resp.send_list(database.list().unwrap()).ok();
+            }
+        }
+        server::Command::ReadShader(ref id) => {
+            if let Some(resp) = resp {
+                match database.read(id) {
+                    Ok(shader) => resp.send_shader(&shader).ok(),
+                    Err(error) => resp.send_error(400, &format!("{}", error)).ok(),
+                };
+            }
+        }
         server::Command::WriteShader(ref id, ref shader, ref commit) => match database.update(
             id,
             shader,
             commit,
-            &format!("Update shader for {}", resp.address()),
+            &format!("Update shader for {:?}", resp.map(|resp| resp.address())),
         ) {
-            Ok(commit) => resp.send_commit(id, &commit),
-            Err(error) => resp.send_error(400, &format!("{}", error)),
+            Ok(commit) => {
+                if let Some(resp) = resp {
+                    resp.send_commit(id, &commit).ok();
+                }
+            }
+            Err(error) => {
+                if let Some(resp) = resp {
+                    resp.send_error(400, &format!("{}", error)).ok();
+                }
+            }
         },
         server::Command::CreateShader(ref shader) => {
-            match database.add(shader, &format!("Add shader for {}", resp.address())) {
-                Ok((id, commit)) => resp.send_commit(&id, &commit),
-                Err(error) => resp.send_error(400, &format!("{}", error)),
+            match database.add(
+                shader,
+                &format!("Add shader for {:?}", resp.map(|resp| resp.address())),
+            ) {
+                Ok((id, commit)) => {
+                    if let Some(resp) = resp {
+                        resp.send_commit(&id, &commit).ok();
+                    }
+                }
+                Err(error) => {
+                    if let Some(resp) = resp {
+                        resp.send_error(400, &format!("{}", error)).ok();
+                    }
+                }
             }
         }
         server::Command::RemoveShader(ref id) => match database.remove(id) {
-            Ok(_) => resp.send_ok(),
-            Err(error) => resp.send_error(400, &format!("{}", error)),
+            Ok(_) => {
+                if let Some(resp) = resp {
+                    resp.send_ok().ok();
+                }
+            }
+            Err(error) => {
+                if let Some(resp) = resp {
+                    resp.send_error(400, &format!("{}", error)).ok();
+                }
+            }
         },
         server::Command::ActivateShader(ref id) => {
-            info!("[{}] Activating shader {}", resp.address(), id);
+            info!(
+                "[{:?}] Activating shader {id}",
+                resp.map(|resp| resp.address())
+            );
             match database.read(id) {
                 Ok(shader) => {
-                    state_machine.to_shader_toy(&shader.source);
-                    resp.send_ok()
+                    state_machine.to_shader_toy(&shader.source, &shader.title);
+                    if let Some(resp) = resp {
+                        resp.send_ok().ok();
+                    }
                 }
-                Err(error) => resp.send_error(404, error.message()),
+                Err(error) => {
+                    if let Some(resp) = resp {
+                        resp.send_error(404, error.message()).ok();
+                    }
+                }
             }
         }
         server::Command::PlayVideo(ref url) => {
             state_machine.to_video(url);
-            resp.send_ok()
+            if let Some(resp) = resp {
+                resp.send_ok().ok();
+            }
         }
         server::Command::TurnOff => {
             state_machine.to_off();
-            resp.send_ok()
+            if let Some(resp) = resp {
+                resp.send_ok().ok();
+            }
         }
         server::Command::ShowPoetry(ref text) => {
             state_machine.to_poetry(text);
-            resp.send_ok()
+            if let Some(resp) = resp {
+                resp.send_ok().ok();
+            }
         }
         server::Command::StartTox => {
             state_machine.to_tox();
-            resp.send_ok()
+            if let Some(resp) = resp {
+                resp.send_ok().ok();
+            }
         }
         server::Command::ToxMessage(ref text) => {
             state_machine.to_tox_message(text);
-            resp.send_ok()
+            if let Some(resp) = resp {
+                resp.send_ok().ok();
+            }
         }
         server::Command::StartEmulator(game) => {
             state_machine.to_emulator(game.clone());
-            resp.send_ok()
+            if let Some(resp) = resp {
+                resp.send_ok().ok();
+            }
         }
         server::Command::EmulatorInput(key, press) => {
             state_machine.emulator_input(key, *press);
-            resp.send_ok()
+            if let Some(resp) = resp {
+                resp.send_ok().ok();
+            }
         }
-    };
+    }
 }
 
 fn main() {
@@ -110,8 +169,8 @@ fn main() {
         error!("Error: {}", e);
         process::exit(-1);
     }
-    let mut database = database::Database::new(&config.database.repository);
-    let mut events_loop = glutin::event_loop::EventLoop::new();
+    let database = database::Database::new(&config.database.repository);
+    let events_loop = glutin::event_loop::EventLoop::new();
     let window = glutin::window::WindowBuilder::new()
         .with_fullscreen(Some(glutin::window::Fullscreen::Borderless(
             events_loop.primary_monitor(),
@@ -126,8 +185,22 @@ fn main() {
         .with_hardware_acceleration(Some(true));
     let display = glium::Display::new(window, context, &events_loop).unwrap();
 
-    let (server_thread, command_receiver) =
+    let (server_thread, command_receiver, command_sender) =
         server::open_server(&config.server.address, config.server.port);
+
+    let mqtt_thread = config.mqtt.as_ref().map(|mqtt| {
+        let config = mqtt.clone();
+        let (tx, rx) = unbounded_channel::<mqtt::State>();
+        (
+            thread::Builder::new()
+                .name("MQTT Interface".to_owned())
+                .spawn(move || {
+                    mqtt::run_mqtt(config, command_sender, rx);
+                })
+                .unwrap(),
+            tx,
+        )
+    });
 
     let (wrench, rck) = match Chip::new("/dev/gpiochip4") {
         Ok(mut chip) => {
@@ -157,25 +230,39 @@ fn main() {
     } else {
         None
     };
-    ROMS_PATH.set((&config.emulator.roms).into());
-    let mut state_machine = states::StateMachine::new(display, led_control, config);
+    ROMS_PATH.set((&config.emulator.roms).into()).ok();
+    let mut state_machine = states::StateMachine::new(
+        display,
+        led_control,
+        config,
+        mqtt_thread.as_ref().map(|(_, sender)| sender.clone()),
+    );
 
     loop {
         state_machine.update();
         match state_machine.interval() {
             None => match command_receiver.recv() {
-                Ok((cmd, resp)) => handle_message(&cmd, &resp, &database, &mut state_machine),
-                Err(err) => break,
+                Ok((cmd, resp)) => {
+                    handle_message(&cmd, resp.as_ref(), &database, &mut state_machine)
+                }
+                Err(_err) => break,
             },
             Some(timeout) => match command_receiver.recv_timeout(timeout) {
                 Err(err) => match err {
                     mpsc::RecvTimeoutError::Timeout => {}
                     mpsc::RecvTimeoutError::Disconnected => break,
                 },
-                Ok((cmd, resp)) => handle_message(&cmd, &resp, &database, &mut state_machine),
+                Ok((cmd, resp)) => {
+                    handle_message(&cmd, resp.as_ref(), &database, &mut state_machine)
+                }
             },
         };
     }
 
     let _ = server_thread.join().unwrap();
+
+    if let Some((join_handle, state_sender)) = mqtt_thread {
+        state_sender.send(mqtt::State::Shutdown).ok();
+        join_handle.join().ok();
+    }
 }

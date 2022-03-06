@@ -20,12 +20,15 @@ pub struct ResponseHandler {
 
 pub struct Connection {
     out: Sender,
-    channel: mpsc::Sender<(Command, ResponseHandler)>,
+    channel: mpsc::Sender<(Command, Option<ResponseHandler>)>,
     address: String,
 }
 
 impl Connection {
-    pub fn new(out: Sender, channel: mpsc::Sender<(Command, ResponseHandler)>) -> Connection {
+    pub fn new(
+        out: Sender,
+        channel: mpsc::Sender<(Command, Option<ResponseHandler>)>,
+    ) -> Connection {
         Connection {
             out,
             channel,
@@ -76,11 +79,14 @@ impl Handler for Connection {
                         address: self.address.clone(),
                     };
                     match cmd.as_ref() {
-                        "shader list" => self.channel.send((Command::ListShaders, resp)).unwrap(),
+                        "shader list" => self
+                            .channel
+                            .send((Command::ListShaders, Some(resp)))
+                            .unwrap(),
                         "shader read" => {
                             if let serde_json::Value::String(ref key) = obj["id"] {
                                 self.channel
-                                    .send((Command::ReadShader(key.clone()), resp))
+                                    .send((Command::ReadShader(key.clone()), Some(resp)))
                                     .unwrap();
                             } else {
                                 error!("[{}] read message has invalid id, ignored.", self.address);
@@ -101,7 +107,7 @@ impl Handler for Connection {
                                                 data,
                                                 commit.to_string(),
                                             ),
-                                            resp,
+                                            Some(resp),
                                         ))
                                         .unwrap(),
                                     Err(error) => resp.send_error(400, &error.details).unwrap(),
@@ -114,14 +120,14 @@ impl Handler for Connection {
                         "shader create" => match Connection::parse_shaderdata(&obj) {
                             Ok(data) => self
                                 .channel
-                                .send((Command::CreateShader(data), resp))
+                                .send((Command::CreateShader(data), Some(resp)))
                                 .unwrap(),
                             Err(error) => resp.send_error(400, &error.details).unwrap(),
                         },
                         "shader remove" => {
                             if let serde_json::Value::String(key) = &obj["id"] {
                                 self.channel
-                                    .send((Command::RemoveShader(key.clone()), resp))
+                                    .send((Command::RemoveShader(key.clone()), Some(resp)))
                                     .unwrap();
                             } else {
                                 resp.send_error(400, "Message has invalid id, ignored.")
@@ -131,7 +137,7 @@ impl Handler for Connection {
                         "shader activate" => {
                             if let serde_json::Value::String(key) = &obj["id"] {
                                 self.channel
-                                    .send((Command::ActivateShader(key.clone()), resp))
+                                    .send((Command::ActivateShader(key.clone()), Some(resp)))
                                     .unwrap();
                             } else {
                                 resp.send_error(400, "Message has invalid id, ignored.")
@@ -141,7 +147,7 @@ impl Handler for Connection {
                         "video play" => {
                             if let serde_json::Value::String(url) = &obj["url"] {
                                 self.channel
-                                    .send((Command::PlayVideo(url.clone()), resp))
+                                    .send((Command::PlayVideo(url.clone()), Some(resp)))
                                     .unwrap();
                             } else {
                                 error!(
@@ -151,30 +157,30 @@ impl Handler for Connection {
                             }
                         }
                         "turnoff" => {
-                            self.channel.send((Command::TurnOff, resp)).unwrap();
+                            self.channel.send((Command::TurnOff, Some(resp))).unwrap();
                         }
                         "show poetry" => {
                             if let serde_json::Value::String(text) = &obj["text"] {
                                 self.channel
-                                    .send((Command::ShowPoetry(text.clone()), resp))
+                                    .send((Command::ShowPoetry(text.clone()), Some(resp)))
                                     .unwrap();
                             } else {
                                 self.channel
-                                    .send((Command::ShowPoetry(String::new()), resp))
+                                    .send((Command::ShowPoetry(String::new()), Some(resp)))
                                     .unwrap();
                             }
                         }
                         "tox start" => {
-                            self.channel.send((Command::StartTox, resp)).unwrap();
+                            self.channel.send((Command::StartTox, Some(resp))).unwrap();
                         }
                         "tox message" => {
                             if let serde_json::Value::String(text) = &obj["text"] {
                                 self.channel
-                                    .send((Command::ToxMessage(text.clone()), resp))
+                                    .send((Command::ToxMessage(text.clone()), Some(resp)))
                                     .unwrap();
                             } else {
                                 self.channel
-                                    .send((Command::ToxMessage(String::new()), resp))
+                                    .send((Command::ToxMessage(String::new()), Some(resp)))
                                     .unwrap();
                             }
                         }
@@ -185,7 +191,7 @@ impl Handler for Connection {
                         "emulator start" => {
                             if let serde_json::Value::String(rom) = &obj["rom"] {
                                 self.channel
-                                    .send((Command::StartEmulator(rom.clone()), resp))
+                                    .send((Command::StartEmulator(rom.clone()), Some(resp)))
                                     .unwrap();
                             } else {
                                 resp.send_error(400, "Message needs string in rom key, ignored.")
@@ -199,7 +205,7 @@ impl Handler for Connection {
                             ) = (&obj["key"], &obj["press"])
                             {
                                 self.channel
-                                    .send((Command::EmulatorInput(key.clone(), *press), resp))
+                                    .send((Command::EmulatorInput(key.clone(), *press), Some(resp)))
                                     .unwrap();
                             } else {
                                 resp.send_error(
@@ -277,16 +283,16 @@ impl ResponseHandler {
         )
     }
 
-    pub fn send_id(&self, id: &str) -> Result<()> {
-        info!("[{}] Sending id", self.address);
-        self.out.send(
-            json!({
-                "req": self.req,
-                "id": id,
-            })
-            .to_string(),
-        )
-    }
+    // pub fn send_id(&self, id: &str) -> Result<()> {
+    //     info!("[{}] Sending id", self.address);
+    //     self.out.send(
+    //         json!({
+    //             "req": self.req,
+    //             "id": id,
+    //         })
+    //         .to_string(),
+    //     )
+    // }
 
     pub fn send_commit(&self, id: &str, commit: &str) -> Result<()> {
         info!("[{}] Sending commit", self.address);

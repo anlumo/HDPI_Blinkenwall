@@ -36,6 +36,15 @@ pub struct Emulator {
     pub fps: u32,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Mqtt {
+    pub server: String,
+    pub port: Option<u16>,
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub topic: String,
+}
+
 fn default_fps() -> u32 {
     60
 }
@@ -48,6 +57,7 @@ pub struct Config {
     pub display: Display,
     pub poetry: Poetry,
     pub emulator: Emulator,
+    pub mqtt: Option<Mqtt>,
 }
 
 impl Config {

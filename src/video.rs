@@ -1,7 +1,6 @@
-use glium::backend::{glutin::Display, Context, Facade};
-use glutin::PossiblyCurrent;
+use glium::backend::{glutin::Display, Context};
 use libmpv::{
-    events::{mpv_event_id, Event, EventContext},
+    events::Event,
     render::{OpenGLInitParams, RenderContext, RenderParam, RenderParamApiType},
     Format, Mpv,
 };
@@ -10,9 +9,7 @@ use libmpv::{
 //     mpv_render_context_set_update_callback, mpv_render_context_update,
 // };
 use log::{error, info};
-use std::ffi::CStr;
-use std::os::raw::{c_char, c_void};
-use std::rc::Rc;
+use std::os::raw::c_void;
 
 pub struct Video {
     render_context: RenderContext,
@@ -25,7 +22,6 @@ fn get_proc_address(display: &Display, name: &str) -> *mut c_void {
 
 impl Video {
     pub fn new(display: &Display) -> Video {
-        let window = display.gl_window();
         let mut player = Mpv::with_initializer(|config| {
             config
                 .set_option("ytdl", "yes")
