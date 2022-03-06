@@ -16,6 +16,7 @@ pub enum State {
     Emulator,
     Stopped,
     Shutdown,
+    Volume(u8),
 }
 
 enum Error {
@@ -72,7 +73,9 @@ async fn main_loop(
                                 log::info!("Got play command!");
                             }
                             MqttCommand::VolumeSet { volume } => {
-                                log::info!("Set volume {:?}", volume.parse::<u8>());
+                                if let Ok(value) = volume.parse() {
+                                    command_sender.send((Command::SetVolume(value), None)).ok();
+                                }
                             }
                         }
                     }
@@ -103,6 +106,9 @@ async fn main_loop(
                     Some(State::Stopped) => {
                         client.publish(format!("{topic}/STATUS"), QoS::AtLeastOnce, true, r"stopped").await?;
                         client.publish(format!("{topic}/TITLE"), QoS::AtLeastOnce, true, []).await?;
+                    }
+                    Some(State::Volume(value)) => {
+                        client.publish(format!("{topic}/VOLUME"), QoS::AtLeastOnce, true, value.to_string()).await?;
                     }
                     Some(State::Shutdown) | None => {
                         client.publish(format!("{topic}/STATUS"), QoS::AtLeastOnce, true, r"off").await?;

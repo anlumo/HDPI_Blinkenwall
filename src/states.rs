@@ -65,6 +65,10 @@ impl StateMachine {
         }
     }
 
+    pub fn get_sender(&self) -> Option<&UnboundedSender<mqtt::State>> {
+        self.state_sender.as_ref()
+    }
+
     fn exit_transition(&mut self, next: &State) {
         match next {
             State::Off => {
@@ -217,11 +221,14 @@ impl StateMachine {
     pub fn to_video(&mut self, url: &str) {
         if let State::Video { .. } = self.state {
         } else {
-            if let Some(sender) = &self.state_sender {
-                sender.send(mqtt::State::PlayVideo(url.to_owned())).ok();
-            }
             let mut video = Video::new(&self.display);
             video.play(url);
+            if let Some(sender) = &self.state_sender {
+                sender.send(mqtt::State::PlayVideo(url.to_owned())).ok();
+                sender
+                    .send(mqtt::State::Volume(video.get_volume() as _))
+                    .ok();
+            }
             let next = State::Video { video };
             self.exit_transition(&next);
             self.state = next;
@@ -321,6 +328,12 @@ impl StateMachine {
     pub fn emulator_input(&mut self, key: &str, press: bool) {
         if let State::Emulator { emulator, .. } = &mut self.state {
             emulator.input(key, press);
+        }
+    }
+
+    pub fn set_volume(&self, value: u8) {
+        if let State::Video { video } = &self.state {
+            video.set_volume(value as _);
         }
     }
 

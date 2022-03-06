@@ -27,6 +27,7 @@ pub enum Command {
     ToxMessage(String),
     StartEmulator(String),
     EmulatorInput(String, bool),
+    SetVolume(u8),
 }
 
 pub fn open_server(

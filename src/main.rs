@@ -152,6 +152,15 @@ fn handle_message(
                 resp.send_ok().ok();
             }
         }
+        server::Command::SetVolume(value) => {
+            state_machine.set_volume(*value);
+            if let Some(resp) = resp {
+                resp.send_ok().ok();
+            }
+            if let Some(sender) = state_machine.get_sender() {
+                sender.send(mqtt::State::Volume(*value as _)).ok();
+            }
+        }
     }
 }
 

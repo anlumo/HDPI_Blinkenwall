@@ -79,4 +79,12 @@ impl Video {
             }
         }
     }
+
+    pub fn get_volume(&self) -> i64 {
+        self.player.get_property("ao-volume").unwrap_or(0)
+    }
+
+    pub fn set_volume(&self, value: i64) {
+        self.player.set_property("ao-volume", value).ok();
+    }
 }
