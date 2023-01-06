@@ -11,7 +11,7 @@ env_logger = "0.9"
 glium = { version = "0.31", features = ["glutin"] }
 glutin = "0.28"
 chrono = "0.4"
-tokio = { version = "1.0", features = ["rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.18", features = ["rt-multi-thread", "sync", "time"] }
 ws = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
