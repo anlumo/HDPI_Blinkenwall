@@ -16,7 +16,7 @@ ws = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 libmpv = { git = "https://github.com/anlumo/libmpv-rs" }
-git2 = "0.14.1"
+git2 = "0.16.1"
 uuid = { version = "0.8", features = ["v4"] }
 portaudio = "0.7"
 rustfft = "6.0"
